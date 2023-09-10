@@ -16,8 +16,23 @@ import java.net.http.HttpResponse;
 
 public class GPTPrototype {
     Configuration config = new Configuration();
-    private final String API_KEY = config.getPropertyValue("llm.api.key"); // Replace with your actual API key
-    private final String EXAMPLE_METHOD = config.getPropertyValue("example.method");
+    private final String API_KEY;
+    private final String EXAMPLE_METHOD;
+
+    public GPTPrototype() {
+        String key =  config.getPropertyValue("llm.api.key");
+        if (key == null) {
+            throw new IllegalArgumentException("API Key must not be null");
+        }
+        API_KEY = key;
+
+        String exampleMethod = config.getPropertyValue("example.method");
+        if (exampleMethod == null) {
+            throw new IllegalArgumentException("Example method must not be null");
+        }
+
+        EXAMPLE_METHOD = exampleMethod;
+    }
 
     void runGPTPrototype() throws Exception {
         StringBuilder prompt = new StringBuilder();
@@ -78,7 +93,7 @@ public class GPTPrototype {
 
         if (httpResponse.statusCode() == 200) {
             GPTChatResponse chatResponse = objectMapper.readValue(httpResponse.body(), GPTChatResponse.class);
-            return chatResponse.getChoices()[chatResponse.getChoices().length - 1].getMessage().getContent();
+            return chatResponse.choices()[chatResponse.choices().length - 1].message().content();
         } else {
             return "Error:\n" + httpResponse.statusCode() + " " + httpResponse.body();
         }

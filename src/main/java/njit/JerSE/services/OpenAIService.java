@@ -7,11 +7,20 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.util.Properties;
 
 public class OpenAIService implements ApiService {
     Configuration config = new Configuration();
-    private final String API_URI = config.getPropertyValue("llm.api.uri");
+    private final String API_URI;
+
+    public OpenAIService() {
+        String uri = config.getPropertyValue("llm.api.uri");
+        if (uri == null) {
+            throw new IllegalArgumentException("API URI must not be null");
+        }
+
+        API_URI = uri;
+    }
+
     @Override
     public HttpRequest apiRequest(String apiKey, String input) {
         return HttpRequest.newBuilder()

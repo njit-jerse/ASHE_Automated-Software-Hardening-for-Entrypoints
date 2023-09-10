@@ -10,11 +10,24 @@ import java.util.regex.Pattern;
 public class FileWatcher {
     Configuration config = new Configuration();
     // Watching the file ASHEExamples is outputting to for any errors or warnings
-    private final String FILE_PATH = config.getPropertyValue("watched.file.path");
+    private final String FILE_PATH;
+
+    public FileWatcher() {
+        String fileFromProps = config.getPropertyValue("watched.file.path");
+        if (fileFromProps == null) {
+            throw new IllegalArgumentException("File path must not be null");
+        }
+
+        FILE_PATH = fileFromProps;
+    }
 
     public String watchForErrors() {
         Path filePath = Paths.get(FILE_PATH);
         Path path = filePath.getParent();
+
+        if (path == null) {
+            throw new IllegalArgumentException("File Path must not be null");
+        }
 
         try (WatchService watchService = FileSystems.getDefault().newWatchService()) {
 
@@ -26,9 +39,17 @@ public class FileWatcher {
                     // TODO: check for other events, such as creation, deletion, etc.
                     // as of now, we are only checking for modifications to the directory
                     if (event.kind() == StandardWatchEventKinds.ENTRY_MODIFY) {
-                        String changed = event.context().toString();
+                        Object context = event.context();
+                        if (context == null) {
+                            continue;
+                        }
+                        String changed = context.toString();
+                        Object fileName = filePath.getFileName();
+                        if (fileName == null) {
+                            continue;
+                        }
                         // when the file we are watching is modified, we check for errors
-                        if (changed.equals(filePath.getFileName().toString())) {
+                        if (changed.equals(fileName.toString())) {
                             String errorMessage = extractErrors();
                             if (!errorMessage.isEmpty()) {
                                 return errorMessage;
@@ -43,7 +64,7 @@ public class FileWatcher {
             e.printStackTrace();
         }
 
-        return null;
+        return "";
     }
 
     private String extractErrors() throws IOException {
@@ -62,9 +83,13 @@ public class FileWatcher {
         // Match the compiled pattern against the content of errorsFile.
         Matcher matcher = pattern.matcher(errorsFile);
         if (matcher.find()) {
+
+            String matchedGroup = matcher.group(1);
             // TODO: Prove this is the proper group to return
             // matcher.group(1) returns the first capturing group: "error: Some error description here."
-            return matcher.group(1).trim();
+            if (matchedGroup != null) {
+                return matchedGroup.trim();
+            }
         }
         return "";
     }
