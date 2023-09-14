@@ -2,115 +2,153 @@ package njit.JerSE;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import njit.JerSE.api.ApiService;
-import njit.JerSE.config.Configuration;
-import njit.JerSE.models.GPTChatResponse;
-import njit.JerSE.models.GPTMessage;
-import njit.JerSE.models.GPTModel;
-import njit.JerSE.models.GPTRequest;
-import njit.JerSE.services.FileWatcher;
+import njit.JerSE.models.*;
+import njit.JerSE.services.CheckerFrameworkCompiler;
+import njit.JerSE.utils.Configuration;
+import njit.JerSE.services.JavaMethodOverwrite;
 import njit.JerSE.services.OpenAIService;
+import njit.JerSE.utils.JavaCodeParser;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 
+/**
+ * GPTPrototype provides a means to interact with GPT to get suggestions for
+ * correcting Java code.
+ * <p>
+ * The class utilizes Checker Framework to compile Java code and detect
+ * errors. If errors are found, it fetches suggestions from GPT to rectify
+ * those errors, recompiles the code and overwrites the original code if
+ * the suggestions are valid.
+ */
 public class GPTPrototype {
+    /**
+     * Initializes the configuration settings for accessing GPT API and
+     * setting up prompts.
+     */
     Configuration config = new Configuration();
-    private final String API_KEY;
-    private final String EXAMPLE_METHOD;
+    private final String API_KEY = config.getPropertyValue("llm.api.key");
+    private final String API_URI = config.getPropertyValue("llm.api.uri");
+    private final String GPT_SYSTEM = config.getPropertyValue("gpt.message.system");
+    private final String GPT_USER = config.getPropertyValue("gpt.message.user");
+    private final String GPT_SYSTEM_CONTENT = config.getPropertyValue("gpt.message.system.content");
+    private final String PROMPT_INTRO = config.getPropertyValue("gpt.prompt.intro");
+    private final String PROMPT_OUTRO = config.getPropertyValue("gpt.prompt.outro");
 
-    public GPTPrototype() {
-        String key =  config.getPropertyValue("llm.api.key");
-        if (key == null) {
-            throw new IllegalArgumentException("API Key must not be null");
+    /**
+     * Fixes Java code using suggestions from GPT.
+     *
+     * @param classPath The path to the Java class file to be corrected.
+     * @throws IOException if there's an issue accessing the file or writing to it.
+     * @throws FileNotFoundException if the provided file path does not point to a valid file.
+     * @throws IllegalArgumentException if the GPT response is unexpected.
+     * @throws InterruptedException if the API call is interrupted.
+     */
+    void fixJavaCodeUsingGPT(String classPath) throws IOException, FileNotFoundException, IllegalArgumentException, InterruptedException {
+        JavaMethodOverwrite javaMethodOverwrite = new JavaMethodOverwrite();
+        JavaCodeParser extractor = new JavaCodeParser();
+        CheckerFrameworkCompiler checkerFrameworkCompiler = new CheckerFrameworkCompiler();
+        String errorCheck = checkerFrameworkCompiler.compileWithCheckerFramework(classPath);
+
+        if (errorCheck.isEmpty()) {
+            System.out.println("No errors found in the file.");
+            return; // No errors, so we exit early
         }
-        API_KEY = key;
 
-        String exampleMethod = config.getPropertyValue("example.method");
-        if (exampleMethod == null) {
-            throw new IllegalArgumentException("Example method must not be null");
+        System.out.println("Errors found in the file.");
+
+        while (!errorCheck.isEmpty()) {
+
+            String exampleMethod = String.valueOf(extractor.extractClassFromFile(classPath));
+
+            String prompt = exampleMethod +
+                    "\n" +
+                    PROMPT_INTRO +
+                    "\n" +
+                    errorCheck +
+                    "\n" +
+                    PROMPT_OUTRO;
+
+            String promptResponse = fetchGPTCorrection(prompt);
+            String codeBlock = extractor.extractJavaCodeBlockFromResponse(promptResponse);
+
+            if (codeBlock.isEmpty()) {
+                System.out.println("Could not extract code block from GPT response.");
+                return; // Exit the function if no code block is extracted
+            }
+
+            if (!javaMethodOverwrite.writeToFile(classPath, codeBlock)) {
+                System.out.println("Failed to write code to file.");
+                return; // Exit the function if writing to file fails
+            }
+
+            System.out.println("File written successfully. Recompiling with Checker Framework to check for additional warnings...");
+
+            // This will be checked at the start of the next iteration
+            errorCheck = checkerFrameworkCompiler.compileWithCheckerFramework(classPath);
+
+            if (!errorCheck.isEmpty()) {
+                System.out.println("Additional error(s) found after recompiling.");
+            }
         }
 
-        EXAMPLE_METHOD = exampleMethod;
+        System.out.println("No more errors found in the file.");
+        System.out.println("Exiting...");
     }
 
-    void runGPTPrototype() throws Exception {
-        StringBuilder prompt = new StringBuilder();
-
-        // TODO: DO NOT HARDCODE THESE PROMPTS IN THIS FILE
-        // TODO: Get the actual method from the verification minimizer
-        // EXAMPLE_METHOD is the specific test case that I am using to get this running
-        prompt.append(EXAMPLE_METHOD);
-        prompt.append("\nmy compiler is running with the Checker Framework's Resource Leak Checker, and it issues an error about the program above. Here's the error:");
-        prompt.append("\n");
-        FileWatcher fileWatcher = new FileWatcher();
-        String errors = fileWatcher.watchForErrors();
-        if (errors != null) {
-            prompt.append(errors);
-            prompt.append("\n");
-            prompt.append("Can you rewrite the program to avoid this error from the compiler? Ensure to include the entire method in your response and also add comments for each line you modify.");
-
-            // FIXME: READ ME
-            // NOTE: I have found that the LLM is giving proper feedback (although maybe not the prettiest code),
-            //       the answers it provides are eliminating the Checker Framework warnings/errors, thus
-            //       allowing the Example Project to compile and run without any errors.
-            //       We are also getting detailed comments in the code that may be helpful when a developer looks at the changes.
-            System.out.println(getGPTResponseForPrompt(prompt.toString()));
-
-            // TODO: Implement future work here
-            /*
-             * This is where we will call a helper method to overwrite the file,
-             * specifically the method fed to the LLM prompt, with the code response
-             *
-             * This method is just an example of what we will do
-             * overwriteFileHelperMethod();
-             */
-        }
-    }
-
-    private String getGPTResponseForPrompt(String prompt) throws Exception {
+    /**
+     * Fetches correction for Java code from GPT.
+     *
+     * @param prompt The prompt to be provided to GPT.
+     * @return A string representation of GPT's response containing the
+     * code correction.
+     * @throws IOException if there's an error during the API call or processing the response.
+     * @throws IllegalStateException if the response from the API is not as expected.
+     * @throws InterruptedException if the API call is interrupted.
+     */
+    private String fetchGPTCorrection(String prompt) throws IOException, IllegalStateException, InterruptedException {
         ApiService openAIService = new OpenAIService();
         ObjectMapper objectMapper = new ObjectMapper();
         HttpClient client = HttpClient.newHttpClient();
 
-        GPTMessage message = new GPTMessage("user", prompt);
-        GPTMessage[] messages = new GPTMessage[]{message};
+        GPTRequest gptRequest = createGptRequestObject(prompt);
+        String apiRequestBody = objectMapper.writeValueAsString(gptRequest);
 
-        GPTRequest gptRequest = new GPTRequest(
-                GPTModel.GPT_3_5_TURBO.getModel(),
-                GPTModel.GPT_3_5_TURBO.getTemperature(),
-                GPTModel.GPT_3_5_TURBO.getMax_tokens(),
-                GPTModel.GPT_3_5_TURBO.getTop_p(),
-                GPTModel.GPT_3_5_TURBO.getFrequency_penalty(),
-                GPTModel.GPT_3_5_TURBO.getPresence_penalty(),
-                messages
-        );
-
-        String input = objectMapper.writeValueAsString(gptRequest);
-
-        HttpRequest request = openAIService.apiRequest(API_KEY, input);
+        HttpRequest request = openAIService.apiRequest(API_KEY, API_URI, apiRequestBody);
         HttpResponse<String> httpResponse = openAIService.apiResponse(request, client);
 
         if (httpResponse.statusCode() == 200) {
             GPTChatResponse chatResponse = objectMapper.readValue(httpResponse.body(), GPTChatResponse.class);
+            System.out.println("Successfully retrieved GPT Prompt response.");
             return chatResponse.choices()[chatResponse.choices().length - 1].message().content();
         } else {
             return "Error:\n" + httpResponse.statusCode() + " " + httpResponse.body();
         }
     }
 
-    /* // TODO: Create a better name
-     * private String parseLLMPrompt() {
-     *    regex only the code from the prompt - we must come up with a better solution long term
-     *    return the code as a string
-     * }
+    /**
+     * Creates a GPT request object based on the provided prompt.
+     *
+     * @param prompt The prompt to be provided to GPT.
+     * @return A GPTRequest object configured with the required parameters
+     * for the GPT API call.
      */
+    private GPTRequest createGptRequestObject(String prompt) {
+        GPTMessage systemMessage = new GPTMessage(GPT_SYSTEM, GPT_SYSTEM_CONTENT);
+        GPTMessage userMessage = new GPTMessage(GPT_USER, prompt);
+        GPTMessage[] messages = new GPTMessage[]{systemMessage, userMessage};
 
-    /* // TODO: Create a better name
-     * private void overwriteFileHelperMethod() {
-     *    Get the .java / .class file from minimized project
-     *    parsePrompt = parseLLMPrompt();
-     *    parsePrompt overwrite the method in the file
-     * }
-     */
+        return new GPTRequest(
+                GPTModel.GPT_4.getModel(),
+                GPTModel.GPT_4.getTemperature(),
+                GPTModel.GPT_4.getMax_tokens(),
+                GPTModel.GPT_4.getTop_p(),
+                GPTModel.GPT_4.getFrequency_penalty(),
+                GPTModel.GPT_4.getPresence_penalty(),
+                messages
+        );
+    }
 }

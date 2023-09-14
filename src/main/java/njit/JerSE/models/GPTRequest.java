@@ -1,5 +1,20 @@
 package njit.JerSE.models;
 
+/**
+ * Represents a request made to the ChatGPT API.
+ * <p>
+ * Each request contains a variety of parameters that influence the response from ChatGPT.
+ *
+ * <p><strong>Note:</strong> It's important that the field names remain in snake_case for API compatibility.
+ *
+ * @param model             The identifier for the model version used by ChatGPT.
+ * @param temperature       Controls the randomness of the output; a higher value makes the output more random.
+ * @param max_tokens        The maximum length of the response in terms of tokens.
+ * @param top_p             Filters the potential response pool to this percentage of most likely choices.
+ * @param frequency_penalty Adjusts the likelihood of tokens appearing based on their frequency in the model's training data.
+ * @param presence_penalty  Adjusts the likelihood of tokens appearing based on their presence in the input message.
+ * @param messages          An array of {@link GPTMessage} representing the conversation history or context.
+ */
 public record GPTRequest(
         String model,
         double temperature,
