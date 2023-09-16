@@ -36,10 +36,11 @@ public class JavaMethodOverwrite {
         Path path = Paths.get(filePath);
         JavaCodeParser javaCodeParser = new JavaCodeParser();
 
-        Optional<JavaCodeParser.MethodDetails> methodDetailsOpt = javaCodeParser.extractMethodDetails(newMethodCode);
-        if (methodDetailsOpt.isEmpty() || !isValidMethodDetails(methodDetailsOpt.get())) {
-            // TODO: This error message won't make sense to users.  Should it be "Could not parse the provided method"?  It should also show the problematic method.
-            System.out.println("Could not extract or validate method details from provided text.");
+        Optional<JavaCodeParser.MethodSignature> methodSignatureOpt = javaCodeParser.extractMethodSignature(newMethodCode);
+        if (methodSignatureOpt.isEmpty() || !isValidMethodSignature(methodSignatureOpt.get())) {
+            // TODO: This error message won't make sense to users.  Should it be "Could not parse the provided method"?
+            // TODO: Throughout, it might be helpful for diagnastic messages to show the problematic text.
+            System.out.println("Could not extract or validate method signature from provided text.");
             return false;
         }
 
@@ -57,7 +58,7 @@ public class JavaMethodOverwrite {
             return false;
         }
 
-        MethodDeclaration newMethod = createNewMethodFromDetails(methodDetailsOpt.get(), javaCodeParser, newMethodCode);
+        MethodDeclaration newMethod = createNewMethodFromSignature(methodSignatureOpt.get(), javaCodeParser, newMethodCode);
         mainClassOpt.get().getMembers().clear();
         mainClassOpt.get().addMember(newMethod);
 
@@ -66,13 +67,13 @@ public class JavaMethodOverwrite {
 
     // TODO: The documentation is a bit circular, reusing "validate" and "valid".  What is the definition of "valid"?
     /**
-     * Validates the extracted method details.
+     * Validates the extracted method signature.
      *
-     * @param details the method details to be validated
-     * @return {@code true} if the method details are valid; {@code false} otherwise.
+     * @param signature the method signature to be validated
+     * @return {@code true} if the method signature are valid; {@code false} otherwise.
      */
-    private boolean isValidMethodDetails(JavaCodeParser.MethodDetails details) {
-        return details.returnType() != null && details.methodName() != null && details.parameters() != null;
+    private boolean isValidMethodSignature(JavaCodeParser.MethodSignature signature) {
+        return signature.returnType() != null && signature.methodName() != null && signature.parameters() != null;
     }
 
     /**
@@ -87,19 +88,19 @@ public class JavaMethodOverwrite {
     }
 
     /**
-     * Creates a new {@link MethodDeclaration} object from the provided method details.
+     * Creates a new {@link MethodDeclaration} object from the provided method signature.
      *
-     * @param details the details of the method to be created
+     * @param signature the signature of the method to be created
      * @param parser the Java code parser utility
      * @param newMethodCode the new method code
      * @return the newly constructed {@link MethodDeclaration} object
      */
-    private MethodDeclaration createNewMethodFromDetails(JavaCodeParser.MethodDetails details, JavaCodeParser parser, String newMethodCode) {
+    private MethodDeclaration createNewMethodFromSignature(JavaCodeParser.MethodSignature signature, JavaCodeParser parser, String newMethodCode) {
         MethodDeclaration newMethod = new MethodDeclaration();
-        newMethod.setType(details.returnType());
-        newMethod.setName(details.methodName());
+        newMethod.setType(signature.returnType());
+        newMethod.setName(signature.methodName());
 
-        String[] rawParameters = details.parameters().split(",");
+        String[] rawParameters = signature.parameters().split(",");
         NodeList<Parameter> parameters = new NodeList<>();
         for (String rawParam : rawParameters) {
             String[] parts = rawParam.trim().split(" ");
@@ -111,7 +112,7 @@ public class JavaMethodOverwrite {
         }
 
         newMethod.setParameters(parameters);
-        newMethod.setBody(StaticJavaParser.parseBlock(parser.extractMethodBodyByName(newMethodCode, details.methodName())));
+        newMethod.setBody(StaticJavaParser.parseBlock(parser.extractMethodBodyByName(newMethodCode, signature.methodName())));
 
         return newMethod;
     }
