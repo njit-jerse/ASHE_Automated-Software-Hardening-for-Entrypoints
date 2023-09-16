@@ -97,18 +97,19 @@ public class JavaCodeParser {
      * @return the first class or interface declaration from the file
      * @throws FileNotFoundException If the file cannot be read
      */
-    public ClassOrInterfaceDeclaration extractClassFromFile(String filePath) throws FileNotFoundException {
+    public ClassOrInterfaceDeclaration extractFirstClassFromFile(String filePath) throws FileNotFoundException {
+        CompilationUnit cu;
         // Use try-with-resources to ensure FileInputStream gets closed
         try (FileInputStream fis = new FileInputStream(filePath)) {
-            CompilationUnit cu = StaticJavaParser.parse(fis);
-
-            // Get all the class and interface declarations from the file
-            List<ClassOrInterfaceDeclaration> classes = cu.findAll(ClassOrInterfaceDeclaration.class);
-
-            return classes.get(0);
+            cu = StaticJavaParser.parse(fis);
         } catch (IOException e) {
             throw new FileNotFoundException("Error reading file: " + e.getMessage());
         }
+
+        // Get all the class and interface declarations from the file
+        List<ClassOrInterfaceDeclaration> classes = cu.findAll(ClassOrInterfaceDeclaration.class);
+
+        return classes.get(0);
     }
 
     /**

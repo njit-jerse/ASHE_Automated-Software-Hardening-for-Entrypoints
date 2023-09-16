@@ -64,8 +64,8 @@ public class CheckerFrameworkCompiler {
     /**
      * Constructs the compilation command for a Java class using the Checker Framework.
      *
-     * @param checkedClassPath the path to the Java class to be compiled
-     * @return an array of strings representing the compilation command
+     * @param checkedClassPath the Java source file to be compiled
+     * @return the compilation command
      */
     private String[] compileCheckedClassCommand(String checkedClassPath) {
         Configuration config = new Configuration();
@@ -73,7 +73,7 @@ public class CheckerFrameworkCompiler {
         String checkerClasspath = config.getPropertyValue("checker.classpath");
         String checkerCommands = config.getPropertyValue("checker.commands");
 
-        return new String[]{
+        return new String[] {
                 "java",
                 "-jar",
                 checkerJar,

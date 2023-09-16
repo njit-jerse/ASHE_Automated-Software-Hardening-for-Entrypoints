@@ -3,7 +3,7 @@ package njit.JerSE.models;
 /**
  * Provides details about the token usage for a ChatGPT API request and response.
  * <p>
- * Given the APIs billing and computational considerations, tracking token usage is crucial.
+ * Given the API's billing and computational considerations, tracking token usage is crucial.
  *
  * <p><strong>Note:</strong> It's important that the field names remain in snake_case for API compatibility.
  *

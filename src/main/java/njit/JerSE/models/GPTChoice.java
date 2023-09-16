@@ -4,7 +4,7 @@ package njit.JerSE.models;
  * Represents a choice provided by the ChatGPT API as part of its response.
  * <p>
  * In the context of the ChatGPT API, each request can result in multiple potential outputs or 'choices'.
- * This record captures individual choices with their details.
+ * This record captures one individual choice with its details.
  *
  * <p><strong>Note:</strong> It's important that the field names remain in snake_case for API compatibility.
  *

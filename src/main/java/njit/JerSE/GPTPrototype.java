@@ -19,7 +19,7 @@ import java.net.http.HttpResponse;
  * GPTPrototype provides a means to interact with GPT to get suggestions for
  * correcting Java code.
  * <p>
- * The class utilizes Checker Framework to compile Java code and detect
+ * This class utilizes the Checker Framework to compile Java code and detect
  * errors. If errors are found, it fetches suggestions from GPT to rectify
  * those errors, recompiles the code and overwrites the original code if
  * TODO: What is the definition of "valid"?  Does it mean that the code verifies without warnings?
@@ -57,30 +57,30 @@ public class GPTPrototype {
         JavaMethodOverwrite javaMethodOverwrite = new JavaMethodOverwrite();
         JavaCodeParser extractor = new JavaCodeParser();
         CheckerFrameworkCompiler checkerFrameworkCompiler = new CheckerFrameworkCompiler();
-        String errorCheck = checkerFrameworkCompiler.compileWithCheckerFramework(classPath);
+        String errorOutput = checkerFrameworkCompiler.compileWithCheckerFramework(classPath);
 
-        if (errorCheck.isEmpty()) {
+        if (errorOutput.isEmpty()) {
             System.out.println("No errors found in the file.");
             return; // No errors, so we exit early
         }
 
         System.out.println("Errors found in the file.");
 
-        while (!errorCheck.isEmpty()) {
+        while (!errorOutput.isEmpty()) {
 
-            // TODO: Why is this named "example" method?
-            String exampleMethod = String.valueOf(extractor.extractClassFromFile(classPath));
+            // TODO: Why does this variable name contain "example"?
+            String exampleMethod = String.valueOf(extractor.extractFirstClassFromFile(classPath));
 
             String prompt = exampleMethod +
                     "\n" +
                     PROMPT_INTRO +
                     "\n" +
-                    errorCheck +
+                    errorOutput +
                     "\n" +
                     PROMPT_OUTRO;
 
-            String promptResponse = fetchGPTCorrection(prompt);
-            String codeBlock = extractor.extractJavaCodeBlockFromResponse(promptResponse);
+            String gptResponse = fetchGPTCorrection(prompt);
+            String codeBlock = extractor.extractJavaCodeBlockFromResponse(gptResponse);
 
             if (codeBlock.isEmpty()) {
                 System.out.println("Could not extract code block from GPT response.");
@@ -95,9 +95,9 @@ public class GPTPrototype {
             System.out.println("File written successfully. Recompiling with Checker Framework to check for additional warnings...");
 
             // This will be checked at the start of the next iteration
-            errorCheck = checkerFrameworkCompiler.compileWithCheckerFramework(classPath);
+            errorOutput = checkerFrameworkCompiler.compileWithCheckerFramework(classPath);
 
-            if (!errorCheck.isEmpty()) {
+            if (!errorOutput.isEmpty()) {
                 System.out.println("Additional error(s) found after recompiling.");
             }
         }
