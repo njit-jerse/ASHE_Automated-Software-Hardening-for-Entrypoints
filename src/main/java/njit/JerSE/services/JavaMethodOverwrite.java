@@ -25,6 +25,7 @@ import java.util.Optional;
 public class JavaMethodOverwrite {
 
     /**
+     * TODO: This seems to replace not 
      * Writes a new method to a given Java file, replacing the existing method.
      *
      * @param filePath the path to the Java file
@@ -37,6 +38,7 @@ public class JavaMethodOverwrite {
 
         Optional<JavaCodeParser.MethodDetails> methodDetailsOpt = javaCodeParser.extractMethodDetails(newMethodCode);
         if (methodDetailsOpt.isEmpty() || !isValidMethodDetails(methodDetailsOpt.get())) {
+            // TODO: This error message won't make sense to users.  Should it be "Could not parse the provided method"?  It should also show the problematic method.
             System.out.println("Could not extract or validate method details from provided text.");
             return false;
         }
@@ -62,6 +64,7 @@ public class JavaMethodOverwrite {
         return writeCompilationUnitToFile(path, cu);
     }
 
+    // TODO: The documentation is a bit circular, reusing "validate" and "valid".  What is the definition of "valid"?
     /**
      * Validates the extracted method details.
      *
@@ -78,6 +81,7 @@ public class JavaMethodOverwrite {
      * @param cu the compilation unit containing the Java source code
      * @return an optional containing the primary class declaration if found; an empty optional otherwise
      */
+    // TODO: Why is "fromPath" in this method name?
     private Optional<ClassOrInterfaceDeclaration> getMainClassFromPath(CompilationUnit cu) {
         return cu.getPrimaryType().flatMap(BodyDeclaration::toClassOrInterfaceDeclaration);
     }
@@ -99,6 +103,7 @@ public class JavaMethodOverwrite {
         NodeList<Parameter> parameters = new NodeList<>();
         for (String rawParam : rawParameters) {
             String[] parts = rawParam.trim().split(" ");
+            // TODO: if length is wrong, this should throw an error.
             if (parts.length == 2) {
                 Parameter parameter = new Parameter(StaticJavaParser.parseType(parts[0]), parts[1]);
                 parameters.add(parameter);
