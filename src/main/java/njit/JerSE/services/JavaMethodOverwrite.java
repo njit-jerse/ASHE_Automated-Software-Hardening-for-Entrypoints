@@ -51,7 +51,7 @@ public class JavaMethodOverwrite {
 
         Optional<ClassOrInterfaceDeclaration> mainClassOpt = getMainClassFromPath(cu);
         if (mainClassOpt.isEmpty()) {
-            System.out.println("No primary class found in the provided file.");
+            System.out.println("No class found in " + path);
             return false;
         }
 
@@ -86,7 +86,7 @@ public class JavaMethodOverwrite {
      * Creates a new {@link MethodDeclaration} object from the provided method details.
      *
      * @param details the details of the method to be created
-     * @param parser the Java code parser utility
+     * @param parser the Java code parser
      * @param newMethodCode the new method code
      * @return the newly constructed {@link MethodDeclaration} object
      */
