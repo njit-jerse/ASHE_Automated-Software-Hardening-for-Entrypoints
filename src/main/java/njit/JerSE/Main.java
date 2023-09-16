@@ -3,7 +3,7 @@ package njit.JerSE;
 import java.io.IOException;
 
 
-//TODO: Throughout the entire project, change System.out.println() to Logger
+// TODO: Throughout the entire project, change System.out.println() to Logger
 /**
  * The main entry point for the application.
  * This class handles the initiation of the GPTPrototype to fix Java code.
@@ -14,11 +14,11 @@ public class Main {
      * The main method that initializes and runs the GPTPrototype.
      * It expects a single argument which is the class path of the Java class to be checked.
      *
-     * @param args Command line arguments. The first and only argument should be the class path.
-     * @throws IllegalArgumentException if no arguments are provided or if too many arguments are provided.
-     * @throws IOException if there's an issue reading or writing files during the code checking and fixing process.
-     * @throws IllegalStateException if the API response from the GPT is not as expected.
-     * @throws InterruptedException if the API request is interrupted.
+     * @param args command line arguments. The first and only argument should be the class path.
+     * @throws IllegalArgumentException if no arguments are provided or if too many arguments are provided
+     * @throws IOException if there's an issue reading or writing files during the code checking and fixing process
+     * @throws IllegalStateException if the API response from the GPT is not as expected
+     * @throws InterruptedException if the API request is interrupted
      */
     public static void main(String[] args) throws IllegalArgumentException, IOException, IllegalStateException, InterruptedException  {
         if (args.length == 0) {

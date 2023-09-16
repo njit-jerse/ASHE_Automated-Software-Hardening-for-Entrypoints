@@ -32,8 +32,8 @@ public class JavaCodeParser {
     /**
      * Extracts method details from a given method string.
      *
-     * @param method The method as a string.
-     * @return An Optional containing {@link MethodDetails} if found, else empty.
+     * @param method the method as a string
+     * @return an Optional containing {@link MethodDetails} if found, else empty
      */
     public Optional<MethodDetails> extractMethodDetails(String method) {
         try {
@@ -68,9 +68,9 @@ public class JavaCodeParser {
     /**
      * Extracts the body of a specified method from the given Java code string.
      *
-     * @param method The entire Java method as a string.
-     * @param methodName The name of the method to find.
-     * @return The body of the method as a string, or empty string if not found.
+     * @param method the entire Java method as a string
+     * @param methodName the name of the method to find
+     * @return the body of the method as a string, or empty string if not found
      */
     public String extractMethodBodyByName(String method, String methodName) {
         CompilationUnit cu = StaticJavaParser.parse(method);
@@ -90,9 +90,9 @@ public class JavaCodeParser {
     /**
      * Extracts the first class or interface declaration from a Java file.
      *
-     * @param filePath The path to the Java file.
-     * @return The first class or interface declaration from the file.
-     * @throws FileNotFoundException If the file cannot be read.
+     * @param filePath the path to the Java file
+     * @return the first class or interface declaration from the file
+     * @throws FileNotFoundException If the file cannot be read
      */
     public ClassOrInterfaceDeclaration extractClassFromFile(String filePath) throws FileNotFoundException {
         // Use try-with-resources to ensure FileInputStream gets closed
@@ -111,8 +111,8 @@ public class JavaCodeParser {
     /**
      * Extracts a Java code block enclosed in {@code ```java ... ```} from a given response string.
      *
-     * @param response The response string potentially containing a Java code block.
-     * @return The Java code block without enclosing tags, or empty string if not found.
+     * @param response the response string potentially containing a Java code block
+     * @return the Java code block without enclosing tags, or empty string if not found
      */
     public String extractJavaCodeBlockFromResponse(String response) {
         Pattern pattern = Pattern.compile("```java(.*?)```", Pattern.DOTALL);

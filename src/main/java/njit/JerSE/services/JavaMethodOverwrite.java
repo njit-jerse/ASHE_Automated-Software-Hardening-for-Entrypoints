@@ -27,8 +27,8 @@ public class JavaMethodOverwrite {
     /**
      * Writes a new method to a given Java file, replacing the existing method.
      *
-     * @param filePath The path to the Java file.
-     * @param newMethodCode The new method code to be written.
+     * @param filePath the path to the Java file
+     * @param newMethodCode the new method code to be written
      * @return {@code true} if the operation was successful; {@code false} otherwise.
      */
     public boolean writeToFile(String filePath, String newMethodCode) {
@@ -65,7 +65,7 @@ public class JavaMethodOverwrite {
     /**
      * Validates the extracted method details.
      *
-     * @param details The method details to be validated.
+     * @param details the method details to be validated
      * @return {@code true} if the method details are valid; {@code false} otherwise.
      */
     private boolean isValidMethodDetails(JavaCodeParser.MethodDetails details) {
@@ -75,8 +75,8 @@ public class JavaMethodOverwrite {
     /**
      * Retrieves the primary class declaration from a given compilation unit.
      *
-     * @param cu The compilation unit containing the Java source code.
-     * @return An optional containing the primary class declaration if found; an empty optional otherwise.
+     * @param cu the compilation unit containing the Java source code
+     * @return an optional containing the primary class declaration if found; an empty optional otherwise
      */
     private Optional<ClassOrInterfaceDeclaration> getMainClassFromPath(CompilationUnit cu) {
         return cu.getPrimaryType().flatMap(BodyDeclaration::toClassOrInterfaceDeclaration);
@@ -85,10 +85,10 @@ public class JavaMethodOverwrite {
     /**
      * Creates a new {@link MethodDeclaration} object from the provided method details.
      *
-     * @param details The details of the method to be created.
-     * @param parser The Java code parser utility.
-     * @param newMethodCode The new method code.
-     * @return The newly constructed {@link MethodDeclaration} object.
+     * @param details the details of the method to be created
+     * @param parser the Java code parser utility
+     * @param newMethodCode the new method code
+     * @return the newly constructed {@link MethodDeclaration} object
      */
     private MethodDeclaration createNewMethodFromDetails(JavaCodeParser.MethodDetails details, JavaCodeParser parser, String newMethodCode) {
         MethodDeclaration newMethod = new MethodDeclaration();
@@ -114,8 +114,8 @@ public class JavaMethodOverwrite {
     /**
      * Writes the updated compilation unit back to the file.
      *
-     * @param path The path to the Java file.
-     * @param cu The updated compilation unit.
+     * @param path the path to the Java file
+     * @param cu the updated compilation unit
      * @return {@code true} if the write operation was successful; {@code false} otherwise.
      */
     private boolean writeCompilationUnitToFile(Path path, CompilationUnit cu) {

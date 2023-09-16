@@ -16,9 +16,9 @@ public class CheckerFrameworkCompiler {
     /**
      * Compiles a Java class using the Checker Framework.
      *
-     * @param classPath The path to the Java class that needs to be compiled.
-     * @return A string containing any errors produced during the compilation.
-     * @throws IOException If there's an error in executing the compilation command or reading its output.
+     * @param classPath the path to the Java class that needs to be compiled
+     * @return a string containing any errors produced during the compilation
+     * @throws IOException If there's an error in executing the compilation command or reading its output
      */
     public String compileWithCheckerFramework(String classPath) throws IOException {
         // Compilation command with Checker Framework
@@ -31,9 +31,9 @@ public class CheckerFrameworkCompiler {
     /**
      * Captures the content of an input stream into a string.
      *
-     * @param stream The input stream to capture.
-     * @return A string representation of the stream's content.
-     * @throws IOException If there's an error in reading from the stream.
+     * @param stream the input stream to capture
+     * @return a string representation of the stream's content
+     * @throws IOException If there's an error in reading from the stream
      */
     private static String captureStream(InputStream stream) throws IOException {
         BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
@@ -50,8 +50,8 @@ public class CheckerFrameworkCompiler {
      * <p>
      * Specifically looks for the pattern "error:" and extracts the message after that pattern.
      *
-     * @param errorMessage The error string to extract messages from.
-     * @return Extracted error message, or an empty string if the "error:" pattern isn't found.
+     * @param errorMessage the error string to extract messages from
+     * @return extracted error message, or an empty string if the "error:" pattern isn't found
      */
     private String extractErrors(String errorMessage) {
         int errorIndex = errorMessage.indexOf("error:");
@@ -64,8 +64,8 @@ public class CheckerFrameworkCompiler {
     /**
      * Constructs the compilation command for a Java class using the Checker Framework.
      *
-     * @param checkedClassPath The path to the Java class to be compiled.
-     * @return An array of strings representing the compilation command.
+     * @param checkedClassPath the path to the Java class to be compiled
+     * @return an array of strings representing the compilation command
      */
     private String[] compileCheckedClassCommand(String checkedClassPath) {
         Configuration config = new Configuration();

@@ -7,12 +7,12 @@ package njit.JerSE.models;
  * When a message or a series of messages are sent to ChatGPT for processing,
  * the API responds with a structured output which this record captures.
  *
- * @param id       The unique identifier for the chat session or message.
- * @param object   The type of the object, typically indicating a "chat" or similar category.
- * @param created  The timestamp indicating when the response was created.
- * @param model    The model version or identifier used by ChatGPT for this response.
- * @param choices  An array of {@link GPTChoice} representing potential responses or outputs from ChatGPT.
- * @param usage    An instance of {@link GPTUsage} detailing the token usage or computational resources used for the request.
+ * @param id       the unique identifier for the chat session or message
+ * @param object   the type of the object, typically indicating a "chat" or similar category
+ * @param created  the timestamp indicating when the response was created
+ * @param model    the model version or identifier used by ChatGPT for this response
+ * @param choices  an array of {@link GPTChoice} representing potential responses or outputs from ChatGPT
+ * @param usage    an instance of {@link GPTUsage} detailing the token usage or computational resources used for the request
  */
 public record GPTChatResponse(
         String id,

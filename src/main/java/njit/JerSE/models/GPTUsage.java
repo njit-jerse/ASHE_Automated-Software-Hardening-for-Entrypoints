@@ -7,9 +7,9 @@ package njit.JerSE.models;
  *
  * <p><strong>Note:</strong> It's important that the field names remain in snake_case for API compatibility.
  *
- * @param prompt_tokens      The number of tokens used in the input prompt.
- * @param completion_tokens  The number of tokens used in the APIs response or completion.
- * @param total_tokens       The total number of tokens used, typically the sum of prompt and completion tokens.
+ * @param prompt_tokens      the number of tokens used in the input prompt
+ * @param completion_tokens  the number of tokens used in the APIs response or completion
+ * @param total_tokens       the total number of tokens used, typically the sum of prompt and completion tokens
  */
 public record GPTUsage(
         int prompt_tokens,

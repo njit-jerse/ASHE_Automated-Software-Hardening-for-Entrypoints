@@ -41,11 +41,11 @@ public class GPTPrototype {
     /**
      * Fixes Java code using suggestions from GPT.
      *
-     * @param classPath The path to the Java class file to be corrected.
-     * @throws IOException if there's an issue accessing the file or writing to it.
-     * @throws FileNotFoundException if the provided file path does not point to a valid file.
-     * @throws IllegalArgumentException if the GPT response is unexpected.
-     * @throws InterruptedException if the API call is interrupted.
+     * @param classPath the path to the Java class file to be corrected
+     * @throws IOException if there's an issue accessing the file or writing to it
+     * @throws FileNotFoundException if the provided file path does not point to a valid file
+     * @throws IllegalArgumentException if the GPT response is unexpected
+     * @throws InterruptedException if the API call is interrupted
      */
     void fixJavaCodeUsingGPT(String classPath) throws IOException, FileNotFoundException, IllegalArgumentException, InterruptedException {
         JavaMethodOverwrite javaMethodOverwrite = new JavaMethodOverwrite();
@@ -102,12 +102,12 @@ public class GPTPrototype {
     /**
      * Fetches correction for Java code from GPT.
      *
-     * @param prompt The prompt to be provided to GPT.
-     * @return A string representation of GPT's response containing the
-     * code correction.
-     * @throws IOException if there's an error during the API call or processing the response.
-     * @throws IllegalStateException if the response from the API is not as expected.
-     * @throws InterruptedException if the API call is interrupted.
+     * @param prompt the prompt to be provided to GPT
+     * @return a string representation of GPT's response containing the
+     * code correction
+     * @throws IOException if there's an error during the API call or processing the response
+     * @throws IllegalStateException if the response from the API is not as expected
+     * @throws InterruptedException if the API call is interrupted
      */
     private String fetchGPTCorrection(String prompt) throws IOException, IllegalStateException, InterruptedException {
         ApiService openAIService = new OpenAIService();
@@ -132,9 +132,9 @@ public class GPTPrototype {
     /**
      * Creates a GPT request object based on the provided prompt.
      *
-     * @param prompt The prompt to be provided to GPT.
-     * @return A GPTRequest object configured with the required parameters
-     * for the GPT API call.
+     * @param prompt the prompt to be provided to GPT
+     * @return a GPTRequest object configured with the required parameters
+     * for the GPT API call
      */
     private GPTRequest createGptRequestObject(String prompt) {
         GPTMessage systemMessage = new GPTMessage(GPT_SYSTEM, GPT_SYSTEM_CONTENT);

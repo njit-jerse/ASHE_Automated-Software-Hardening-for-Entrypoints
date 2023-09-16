@@ -42,12 +42,12 @@ public enum GPTModel {
     /**
      * Constructs a new GPTModel with the given parameters.
      *
-     * @param model             The identifier for the GPT model.
-     * @param temperature       Controls the randomness of the output.
-     * @param max_tokens        Sets the maximum length of the response in terms of tokens.
-     * @param top_p             Filters the potential response pool to this fraction of most likely choices.
-     * @param frequency_penalty Adjusts the likelihood of tokens based on their frequency in training data.
-     * @param presence_penalty  Adjusts the likelihood of tokens based on their presence in the input.
+     * @param model             the identifier for the GPT model
+     * @param temperature       controls the randomness of the output
+     * @param max_tokens        sets the maximum length of the response in terms of tokens
+     * @param top_p             filters the potential response pool to this fraction of most likely choices
+     * @param frequency_penalty adjusts the likelihood of tokens based on their frequency in training data
+     * @param presence_penalty  adjusts the likelihood of tokens based on their presence in the input
      */
     GPTModel(String model, double temperature, int max_tokens, double top_p, int frequency_penalty, int presence_penalty) {
         this.model = model;

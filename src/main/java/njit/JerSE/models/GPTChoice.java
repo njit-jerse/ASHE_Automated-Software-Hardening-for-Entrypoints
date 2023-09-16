@@ -8,9 +8,9 @@ package njit.JerSE.models;
  *
  * <p><strong>Note:</strong> It's important that the field names remain in snake_case for API compatibility.
  *
- * @param index         The position or ranking of this choice among others.
- * @param message       The {@link GPTMessage} object that encapsulates the content and role of this choice.
- * @param finish_reason The reason provided by ChatGPT for concluding or stopping at this choice.
+ * @param index         the position or ranking of this choice among others
+ * @param message       the {@link GPTMessage} object that encapsulates the content and role of this choice
+ * @param finish_reason the reason provided by ChatGPT for concluding or stopping at this choice
  */
 public record GPTChoice(
         int index,

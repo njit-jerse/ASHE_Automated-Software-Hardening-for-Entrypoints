@@ -19,10 +19,10 @@ public class OpenAIService implements ApiService {
     /**
      * Constructs an API request to OpenAI with the provided parameters.
      *
-     * @param apiKey The API key for authorization.
-     * @param apiUri The API endpoint URI.
-     * @param apiRequestBody The body to send with the request.
-     * @return A constructed HttpRequest ready to be sent to the OpenAI API.
+     * @param apiKey the API key for authorization
+     * @param apiUri the API endpoint URI
+     * @param apiRequestBody the body to send with the request
+     * @return a constructed HttpRequest ready to be sent to the OpenAI API
      */
     @Override
     public HttpRequest apiRequest(String apiKey, String apiUri, String apiRequestBody) {
@@ -38,11 +38,11 @@ public class OpenAIService implements ApiService {
     /**
      * Sends the provided HttpRequest and retrieves the API response.
      *
-     * @param request The HttpRequest to send.
-     * @param client The HttpClient used to send the request.
-     * @return The HttpResponse containing the APIs response.
-     * @throws IOException If an I/O error occurs when sending or receiving.
-     * @throws InterruptedException If the operation is interrupted.
+     * @param request the HttpRequest to send
+     * @param client the HttpClient used to send the request
+     * @return the HttpResponse containing the APIs response
+     * @throws IOException if an I/O error occurs when sending or receiving
+     * @throws InterruptedException If the operation is interrupted
      */
     @Override
     public HttpResponse<String> apiResponse(HttpRequest request, HttpClient client) throws IOException, InterruptedException {

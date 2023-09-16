@@ -43,8 +43,8 @@ public class Configuration {
     /**
      * Retrieves the property value for a given key.
      *
-     * @param key The key of the property to be retrieved.
-     * @return The value associated with the provided key.
+     * @param key the key of the property to be retrieved
+     * @return the value associated with the provided key
      * @throws IllegalArgumentException If the key is {@code null} or does not exist in the properties.
      */
     public String getPropertyValue(String key) {
