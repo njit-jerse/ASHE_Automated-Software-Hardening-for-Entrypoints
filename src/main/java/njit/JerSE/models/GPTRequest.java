@@ -1,6 +1,7 @@
 package njit.JerSE.models;
 
 /**
+ * TODO: This documentation says "Represents a request", but the `messages` field seems to represent the whole history of the conversation.  Please clarify.
  * Represents a request made to the ChatGPT API.
  * <p>
  * Each request contains a variety of parameters that influence the response from ChatGPT.
@@ -16,6 +17,7 @@ package njit.JerSE.models;
  * @param messages          an array of {@link GPTMessage} representing the conversation history or context
  */
 public record GPTRequest(
+        // TODO: Could the first 6 fields be a GPTModel?
         String model,
         double temperature,
         int max_tokens,
