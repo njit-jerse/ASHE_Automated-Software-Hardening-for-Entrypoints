@@ -35,6 +35,7 @@ public class CheckerFrameworkCompiler {
      * @return a string representation of the stream's content
      * @throws IOException If there's an error in reading from the stream
      */
+    // TODO: The name "capture" is not very evocative.  I would name this "streamToString" or "streamContents" or the like.
     private static String captureStream(InputStream stream) throws IOException {
         BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
         StringBuilder stringBuilder = new StringBuilder();
@@ -50,9 +51,11 @@ public class CheckerFrameworkCompiler {
      * <p>
      * Specifically looks for the pattern "error:" and extracts the message after that pattern.
      *
+     * TODO: Might the argument and the return value be multiple lines?  Do they indicate a line number?  Please be more specific about the format.
      * @param errorMessage the error string to extract messages from
      * @return extracted error message, or an empty string if the "error:" pattern isn't found
      */
+    // TODO: Should "extractErrors" be singular "extractError"?
     private String extractErrors(String errorMessage) {
         int errorIndex = errorMessage.indexOf("error:");
         if (errorIndex != -1) {
@@ -64,8 +67,8 @@ public class CheckerFrameworkCompiler {
     /**
      * Constructs the compilation command for a Java class using the Checker Framework.
      *
-     * @param checkedClassPath the Java source file to be compiled
-     * @return the compilation command
+     * @param checkedClassPath the path to the Java class to be compiled
+     * @return an array of strings representing the compilation command
      */
     private String[] compileCheckedClassCommand(String checkedClassPath) {
         Configuration config = new Configuration();

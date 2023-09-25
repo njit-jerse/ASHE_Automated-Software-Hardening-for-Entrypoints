@@ -10,6 +10,7 @@ package njit.JerSE.models;
  *
  * @param index         the position or ranking of this choice among others
  * @param message       the {@link GPTMessage} object that encapsulates the content and role of this choice
+ * TODO: Is this usually empty (or maybe null)?
  * @param finish_reason the reason provided by ChatGPT for concluding or stopping at this choice
  */
 public record GPTChoice(

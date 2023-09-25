@@ -22,8 +22,10 @@ import java.net.http.HttpResponse;
  * This class utilizes the Checker Framework to compile Java code and detect
  * errors. If errors are found, it fetches suggestions from GPT to rectify
  * those errors, recompiles the code and overwrites the original code if
+ * TODO: What is the definition of "valid"?  Does it mean that the code verifies without warnings?
  * the suggestions are valid.
  */
+// TODO: Why is "prototype" in the name?  Please choose a more descriptive name.
 public class GPTPrototype {
     /**
      * Initializes the configuration settings for accessing GPT API and
@@ -36,11 +38,15 @@ public class GPTPrototype {
     private final String GPT_USER = config.getPropertyValue("gpt.message.user");
     private final String GPT_SYSTEM_CONTENT = config.getPropertyValue("gpt.message.system.content");
     private final String PROMPT_INTRO = config.getPropertyValue("gpt.prompt.intro");
+    // TODO: I find this variable name unintuitive.  How about "start" and "end" for the above and below variables?
     private final String PROMPT_OUTRO = config.getPropertyValue("gpt.prompt.outro");
 
     /**
      * Fixes Java code using suggestions from GPT.
      *
+     * TODO: In Java, the "classpath" is where the JVM finds compiled clases to run.
+     * TODO: It is confusing to use that term to mean something else.
+     * TODO: How about "sourceFile" or "javaFile" instead?
      * @param classPath the path to the Java class file to be corrected
      * @throws IOException if there's an issue accessing the file or writing to it
      * @throws FileNotFoundException if the provided file path does not point to a valid file
@@ -62,6 +68,7 @@ public class GPTPrototype {
 
         while (!errorOutput.isEmpty()) {
 
+            // TODO: Why does this variable name contain "example"?
             String exampleMethod = String.valueOf(extractor.extractFirstClassFromFile(classPath));
 
             String prompt = exampleMethod +
@@ -125,6 +132,7 @@ public class GPTPrototype {
             System.out.println("Successfully retrieved GPT Prompt response.");
             return chatResponse.choices()[chatResponse.choices().length - 1].message().content();
         } else {
+            // TODO: Java programs should not use literal "\n".  Use System.lineSeparator() instead.
             return "Error:\n" + httpResponse.statusCode() + " " + httpResponse.body();
         }
     }

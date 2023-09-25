@@ -65,6 +65,9 @@ public class JavaCodeParser {
         return Optional.empty(); // return an empty Optional if no value is present
     }
 
+    // TODO: I'm confused about the specification of this method.  If the `method` formal parameter
+    // TODO: is a (single) Java method, then why is `methodName` necessary?  What kind of searching
+    // TODO: needs to be done?
     /**
      * Extracts the body of a specified method from the given Java code string.
      *
@@ -116,6 +119,8 @@ public class JavaCodeParser {
      * @return the Java code block without enclosing tags, or empty string if not found
      */
     public String extractJavaCodeBlockFromResponse(String response) {
+        // TODO: For efficiency, make this pattern a field so it is only computed once.
+        // TODO: Also, give it a more descriptive name than `pattern`.
         Pattern pattern = Pattern.compile("```java(.*?)```", Pattern.DOTALL);
         Matcher matcher = pattern.matcher(response);
 
