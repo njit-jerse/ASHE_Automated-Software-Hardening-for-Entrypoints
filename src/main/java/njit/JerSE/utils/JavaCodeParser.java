@@ -22,11 +22,21 @@ import java.util.stream.Collectors;
  */
 public class JavaCodeParser {
 
+    private final Pattern javaCodeBlockPattern;
+
+    public JavaCodeParser() {
+        this.javaCodeBlockPattern = Pattern.compile("```java(.*?)```", Pattern.DOTALL);
+    }
+
     /**
      * Represents the signature of a Java method: its return type,
      * method name, and parameters.
      */
-    public record MethodSignature(String returnType, String methodName, String parameters) {
+    public record MethodSignature(
+            String returnType,
+            String methodName,
+            String parameters
+    ) {
     }
 
     /**
@@ -65,27 +75,20 @@ public class JavaCodeParser {
         return Optional.empty(); // return an empty Optional if no value is present
     }
 
-    // TODO: I'm confused about the specification of this method.  If the `method` formal parameter
-    // TODO: is a (single) Java method, then why is `methodName` necessary?  What kind of searching
-    // TODO: needs to be done?
     /**
      * Extracts the body of a specified method from the given Java code string.
      *
      * @param method the entire Java method as a string
-     * @param methodName the name of the method to find
-     * @return the body of the method as a string, or empty string if not found
+     * @return the body of the method as a string, or an empty string if not found
      */
-    public String extractMethodBodyByName(String method, String methodName) {
+    public String extractMethodBody(String method) {
         CompilationUnit cu = StaticJavaParser.parse(method);
-        MethodDeclaration testSocketMethod = cu.findFirst(
-                MethodDeclaration.class,
-                mthd -> mthd.getName().asString().equals(methodName)
-        ).orElse(null);
+        MethodDeclaration methodDeclaration = cu.findFirst(MethodDeclaration.class).orElse(null);
 
-        if (testSocketMethod != null && testSocketMethod.getBody().isPresent()) {
-            return testSocketMethod.getBody().get().toString();
+        if (methodDeclaration != null && methodDeclaration.getBody().isPresent()) {
+            return methodDeclaration.getBody().get().toString();
         } else {
-            System.out.println(methodName + " method not found.");
+            System.out.println("Method body not found.");
         }
         return "";
     }
@@ -119,10 +122,7 @@ public class JavaCodeParser {
      * @return the Java code block without enclosing tags, or empty string if not found
      */
     public String extractJavaCodeBlockFromResponse(String response) {
-        // TODO: For efficiency, make this pattern a field so it is only computed once.
-        // TODO: Also, give it a more descriptive name than `pattern`.
-        Pattern pattern = Pattern.compile("```java(.*?)```", Pattern.DOTALL);
-        Matcher matcher = pattern.matcher(response);
+        Matcher matcher = javaCodeBlockPattern.matcher(response);
 
         if (matcher.find()) {
             String matchedGroup = matcher.group(1);

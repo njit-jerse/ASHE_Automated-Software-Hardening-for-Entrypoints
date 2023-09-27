@@ -14,33 +14,31 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.util.Arrays;
 import java.util.Optional;
 
 /**
- * Provides functionality to overwrite Java methods within a given file.
+ * Provides functionality to replace Java methods within a given file.
  * <p>
  * This service uses the JavaParser library to analyze and manipulate Java source files,
  * facilitating the replacement of methods with new implementations provided as input.
  */
-public class JavaMethodOverwrite {
+public class MethodReplacementService {
 
     /**
-     * TODO: This seems to replace not 
-     * Writes a new method to a given Java file, replacing the existing method.
+     * Replaces an existing Java method in the specified file with a new, updated method.
      *
-     * @param filePath the path to the Java file
-     * @param newMethodCode the new method code to be written
-     * @return {@code true} if the operation was successful; {@code false} otherwise.
+     * @param filePath      the path to the Java file containing the method to be replaced.
+     * @param newMethodCode the new method code to replace the existing method.
+     * @return {@code true} if the replacement operation was successful; {@code false} otherwise.
      */
-    public boolean writeToFile(String filePath, String newMethodCode) {
+    public boolean replacePreviousMethod(String filePath, String newMethodCode) {
         Path path = Paths.get(filePath);
         JavaCodeParser javaCodeParser = new JavaCodeParser();
 
         Optional<JavaCodeParser.MethodSignature> methodSignatureOpt = javaCodeParser.extractMethodSignature(newMethodCode);
         if (methodSignatureOpt.isEmpty() || !isValidMethodSignature(methodSignatureOpt.get())) {
-            // TODO: This error message won't make sense to users.  Should it be "Could not parse the provided method"?
-            // TODO: Throughout, it might be helpful for diagnastic messages to show the problematic text.
-            System.out.println("Could not extract or validate method signature from provided text.");
+            System.out.println("Could not parse the provided method.");
             return false;
         }
 
@@ -52,7 +50,7 @@ public class JavaMethodOverwrite {
             return false;
         }
 
-        Optional<ClassOrInterfaceDeclaration> mainClassOpt = getMainClassFromPath(cu);
+        Optional<ClassOrInterfaceDeclaration> mainClassOpt = getMainClass(cu);
         if (mainClassOpt.isEmpty()) {
             System.out.println("No class found in " + path);
             return false;
@@ -65,15 +63,17 @@ public class JavaMethodOverwrite {
         return writeCompilationUnitToFile(path, cu);
     }
 
-    // TODO: The documentation is a bit circular, reusing "validate" and "valid".  What is the definition of "valid"?
     /**
-     * Validates the extracted method signature.
+     * Checks if the extracted method signature is both complete and conforms to the expected
+     * format of a valid Java method signature.
      *
-     * @param signature the method signature to be validated
-     * @return {@code true} if the method signature are valid; {@code false} otherwise.
+     * @param signature the method signature to be checked
+     * @return {@code true} if the method signature is complete and a valid Java method signature; {@code false} otherwise.
      */
     private boolean isValidMethodSignature(JavaCodeParser.MethodSignature signature) {
-        return signature.returnType() != null && signature.methodName() != null && signature.parameters() != null;
+        return signature.returnType() != null &&
+               signature.methodName() != null &&
+               signature.parameters() != null;
     }
 
     /**
@@ -82,8 +82,7 @@ public class JavaMethodOverwrite {
      * @param cu the compilation unit containing the Java source code
      * @return an optional containing the primary class declaration if found; an empty optional otherwise
      */
-    // TODO: Why is "fromPath" in this method name?
-    private Optional<ClassOrInterfaceDeclaration> getMainClassFromPath(CompilationUnit cu) {
+    private Optional<ClassOrInterfaceDeclaration> getMainClass(CompilationUnit cu) {
         return cu.getPrimaryType().flatMap(BodyDeclaration::toClassOrInterfaceDeclaration);
     }
 
@@ -101,19 +100,28 @@ public class JavaMethodOverwrite {
         newMethod.setName(signature.methodName());
 
         String[] rawParameters = signature.parameters().split(",");
-        NodeList<Parameter> parameters = new NodeList<>();
-        for (String rawParam : rawParameters) {
-            String[] parts = rawParam.trim().split(" ");
-            // TODO: if length is wrong, this should throw an error.
-            if (parts.length == 2) {
-                Parameter parameter = new Parameter(StaticJavaParser.parseType(parts[0]), parts[1]);
-                parameters.add(parameter);
+        boolean isRawParamsEmpty = Arrays.stream(rawParameters).anyMatch(param -> param.trim().isEmpty());
+
+        // If the method signature has parameters,
+        // parse them and add them to the new method.
+        // Otherwise, skip and set the method body
+        if (!isRawParamsEmpty) {
+            NodeList<Parameter> parameters = new NodeList<>();
+
+            for (String rawParam : rawParameters) {
+                String[] parts = rawParam.trim().split(" ");
+
+                if (parts.length == 2) {
+                    Parameter parameter = new Parameter(StaticJavaParser.parseType(parts[0]), parts[1]);
+                    parameters.add(parameter);
+                } else {
+                    throw new IllegalArgumentException("Invalid parameter: " + rawParam);
+                }
             }
+            newMethod.setParameters(parameters);
         }
 
-        newMethod.setParameters(parameters);
-        newMethod.setBody(StaticJavaParser.parseBlock(parser.extractMethodBodyByName(newMethodCode, signature.methodName())));
-
+        newMethod.setBody(StaticJavaParser.parseBlock(parser.extractMethodBody(newMethodCode)));
         return newMethod;
     }
 
@@ -134,5 +142,4 @@ public class JavaMethodOverwrite {
             return false;
         }
     }
-
 }

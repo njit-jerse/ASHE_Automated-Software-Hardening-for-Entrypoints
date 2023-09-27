@@ -4,8 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import njit.JerSE.api.ApiService;
 import njit.JerSE.models.*;
 import njit.JerSE.services.CheckerFrameworkCompiler;
+import njit.JerSE.services.MethodReplacementService;
 import njit.JerSE.utils.Configuration;
-import njit.JerSE.services.JavaMethodOverwrite;
 import njit.JerSE.services.OpenAIService;
 import njit.JerSE.utils.JavaCodeParser;
 
@@ -16,17 +16,16 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 
 /**
- * GPTPrototype provides a means to interact with GPT to get suggestions for
+ * ASHE provides a means to interact with GPT to get suggestions for
  * correcting Java code.
  * <p>
  * This class utilizes the Checker Framework to compile Java code and detect
  * errors. If errors are found, it fetches suggestions from GPT to rectify
  * those errors, recompiles the code and overwrites the original code if
- * TODO: What is the definition of "valid"?  Does it mean that the code verifies without warnings?
- * the suggestions are valid.
+ * the suggestions result in code that compiles without errors using the
+ * Checker Framework.
  */
-// TODO: Why is "prototype" in the name?  Please choose a more descriptive name.
-public class GPTPrototype {
+public class ASHE {
     /**
      * Initializes the configuration settings for accessing GPT API and
      * setting up prompts.
@@ -37,27 +36,24 @@ public class GPTPrototype {
     private final String GPT_SYSTEM = config.getPropertyValue("gpt.message.system");
     private final String GPT_USER = config.getPropertyValue("gpt.message.user");
     private final String GPT_SYSTEM_CONTENT = config.getPropertyValue("gpt.message.system.content");
-    private final String PROMPT_INTRO = config.getPropertyValue("gpt.prompt.intro");
-    // TODO: I find this variable name unintuitive.  How about "start" and "end" for the above and below variables?
-    private final String PROMPT_OUTRO = config.getPropertyValue("gpt.prompt.outro");
+    private final String PROMPT_START = config.getPropertyValue("gpt.prompt.start");
+    private final String PROMPT_END = config.getPropertyValue("gpt.prompt.end");
 
     /**
      * Fixes Java code using suggestions from GPT.
+     * <p>
      *
-     * TODO: In Java, the "classpath" is where the JVM finds compiled clases to run.
-     * TODO: It is confusing to use that term to mean something else.
-     * TODO: How about "sourceFile" or "javaFile" instead?
-     * @param classPath the path to the Java class file to be corrected
-     * @throws IOException if there's an issue accessing the file or writing to it
-     * @throws FileNotFoundException if the provided file path does not point to a valid file
+     * @param sourceFile the path to the Java class file to be corrected
+     * @throws IOException              if there's an issue accessing the file or writing to it
+     * @throws FileNotFoundException    if the provided file path does not point to a valid file
      * @throws IllegalArgumentException if the GPT response is unexpected
-     * @throws InterruptedException if the API call is interrupted
+     * @throws InterruptedException     if the API call is interrupted
      */
-    void fixJavaCodeUsingGPT(String classPath) throws IOException, FileNotFoundException, IllegalArgumentException, InterruptedException {
-        JavaMethodOverwrite javaMethodOverwrite = new JavaMethodOverwrite();
+    void fixJavaCodeUsingGPT(String sourceFile) throws IOException, FileNotFoundException, IllegalArgumentException, InterruptedException {
+        MethodReplacementService methodReplacement = new MethodReplacementService();
         JavaCodeParser extractor = new JavaCodeParser();
         CheckerFrameworkCompiler checkerFrameworkCompiler = new CheckerFrameworkCompiler();
-        String errorOutput = checkerFrameworkCompiler.compileWithCheckerFramework(classPath);
+        String errorOutput = checkerFrameworkCompiler.compileWithCheckerFramework(sourceFile);
 
         if (errorOutput.isEmpty()) {
             System.out.println("No errors found in the file.");
@@ -68,26 +64,25 @@ public class GPTPrototype {
 
         while (!errorOutput.isEmpty()) {
 
-            // TODO: Why does this variable name contain "example"?
-            String exampleMethod = String.valueOf(extractor.extractFirstClassFromFile(classPath));
+            String methodWithError = String.valueOf(extractor.extractFirstClassFromFile(sourceFile));
 
-            String prompt = exampleMethod +
+            String prompt = methodWithError +
                     "\n" +
-                    PROMPT_INTRO +
+                    PROMPT_START +
                     "\n" +
                     errorOutput +
                     "\n" +
-                    PROMPT_OUTRO;
+                    PROMPT_END;
 
-            String gptResponse = fetchGPTCorrection(prompt);
-            String codeBlock = extractor.extractJavaCodeBlockFromResponse(gptResponse);
+            String gptCorrection = fetchGPTCorrection(prompt);
+            String codeBlock = extractor.extractJavaCodeBlockFromResponse(gptCorrection);
 
             if (codeBlock.isEmpty()) {
                 System.out.println("Could not extract code block from GPT response.");
                 return; // Exit the function if no code block is extracted
             }
 
-            if (!javaMethodOverwrite.writeToFile(classPath, codeBlock)) {
+            if (!methodReplacement.replacePreviousMethod(sourceFile, codeBlock)) {
                 System.out.println("Failed to write code to file.");
                 return; // Exit the function if writing to file fails
             }
@@ -95,7 +90,7 @@ public class GPTPrototype {
             System.out.println("File written successfully. Recompiling with Checker Framework to check for additional warnings...");
 
             // This will be checked at the start of the next iteration
-            errorOutput = checkerFrameworkCompiler.compileWithCheckerFramework(classPath);
+            errorOutput = checkerFrameworkCompiler.compileWithCheckerFramework(sourceFile);
 
             if (!errorOutput.isEmpty()) {
                 System.out.println("Additional error(s) found after recompiling.");
@@ -112,9 +107,9 @@ public class GPTPrototype {
      * @param prompt the prompt to be provided to GPT
      * @return a string representation of GPT's response containing the
      * code correction
-     * @throws IOException if there's an error during the API call or processing the response
+     * @throws IOException           if there's an error during the API call or processing the response
      * @throws IllegalStateException if the response from the API is not as expected
-     * @throws InterruptedException if the API call is interrupted
+     * @throws InterruptedException  if the API call is interrupted
      */
     private String fetchGPTCorrection(String prompt) throws IOException, IllegalStateException, InterruptedException {
         ApiService openAIService = new OpenAIService();
@@ -128,12 +123,11 @@ public class GPTPrototype {
         HttpResponse<String> httpResponse = openAIService.apiResponse(request, client);
 
         if (httpResponse.statusCode() == 200) {
-            GPTChatResponse chatResponse = objectMapper.readValue(httpResponse.body(), GPTChatResponse.class);
+            GPTResponse gptResponse = objectMapper.readValue(httpResponse.body(), GPTResponse.class);
             System.out.println("Successfully retrieved GPT Prompt response.");
-            return chatResponse.choices()[chatResponse.choices().length - 1].message().content();
+            return gptResponse.choices()[gptResponse.choices().length - 1].message().content();
         } else {
-            // TODO: Java programs should not use literal "\n".  Use System.lineSeparator() instead.
-            return "Error:\n" + httpResponse.statusCode() + " " + httpResponse.body();
+            return "Error:" + System.lineSeparator() + httpResponse.statusCode() + " " + httpResponse.body();
         }
     }
 
@@ -149,14 +143,6 @@ public class GPTPrototype {
         GPTMessage userMessage = new GPTMessage(GPT_USER, prompt);
         GPTMessage[] messages = new GPTMessage[]{systemMessage, userMessage};
 
-        return new GPTRequest(
-                GPTModel.GPT_4.getModel(),
-                GPTModel.GPT_4.getTemperature(),
-                GPTModel.GPT_4.getMax_tokens(),
-                GPTModel.GPT_4.getTop_p(),
-                GPTModel.GPT_4.getFrequency_penalty(),
-                GPTModel.GPT_4.getPresence_penalty(),
-                messages
-        );
+        return new GPTRequest(GPTModel.GPT_4, messages);
     }
 }

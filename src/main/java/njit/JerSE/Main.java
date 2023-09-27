@@ -34,8 +34,8 @@ public class Main {
         //  we must accept more arguments to run SPECIMIN tool
         // class path of the class to be checked
         String classPath = args[0];
-        GPTPrototype gptPrototype = new GPTPrototype();
-        gptPrototype.fixJavaCodeUsingGPT(classPath);
+        ASHE ashe = new ASHE();
+        ashe.fixJavaCodeUsingGPT(classPath);
     }
 
 

@@ -24,8 +24,8 @@ public class CheckerFrameworkCompiler {
         // Compilation command with Checker Framework
         String[] command = compileCheckedClassCommand(classPath);
         Process compileProcess = Runtime.getRuntime().exec(command);
-        String errorOutput = captureStream(compileProcess.getErrorStream());
-        return extractErrors(errorOutput);
+        String errorOutput = streamToString(compileProcess.getErrorStream());
+        return extractError(errorOutput);
     }
 
     /**
@@ -35,8 +35,7 @@ public class CheckerFrameworkCompiler {
      * @return a string representation of the stream's content
      * @throws IOException If there's an error in reading from the stream
      */
-    // TODO: The name "capture" is not very evocative.  I would name this "streamToString" or "streamContents" or the like.
-    private static String captureStream(InputStream stream) throws IOException {
+    private static String streamToString(InputStream stream) throws IOException {
         BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
         StringBuilder stringBuilder = new StringBuilder();
         String line;
@@ -47,18 +46,25 @@ public class CheckerFrameworkCompiler {
     }
 
     /**
-     * Extracts error messages from the provided error output string.
+     * Extracts an error message from the provided error output string.
      * <p>
-     * Specifically looks for the pattern "error:" and extracts the message after that pattern.
+     * Specifically, this method searches for the pattern "error:" within the error output string,
+     * which is the pattern used by the Checker Framework to indicate an error. If found, it
+     * extracts the message that follows that pattern. The error message can span multiple lines.
+     * If the "error:" pattern is not found, an empty string is returned.
      *
-     * TODO: Might the argument and the return value be multiple lines?  Do they indicate a line number?  Please be more specific about the format.
      * @param errorMessage the error string to extract messages from
-     * @return extracted error message, or an empty string if the "error:" pattern isn't found
+     * @return the extracted error message, or an empty string if the "error:" pattern isn't found
      */
-    // TODO: Should "extractErrors" be singular "extractError"?
-    private String extractErrors(String errorMessage) {
+    private String extractError(String errorMessage) {
+        /**
+         The {@code errorIndex} indicates the position in the input string where the "error:" pattern was found.
+         * It can be used to determine the starting point of the extracted error message within the input string.
+         * If no "error:" pattern is found, {@code errorIndex} will be -1.
+         */
         int errorIndex = errorMessage.indexOf("error:");
         if (errorIndex != -1) {
+            // Extract the error message starting from the "error:" pattern
             return errorMessage.substring(errorIndex).trim();
         }
         return ""; // No "error:" pattern found in the errorMessage
@@ -76,7 +82,7 @@ public class CheckerFrameworkCompiler {
         String checkerClasspath = config.getPropertyValue("checker.classpath");
         String checkerCommands = config.getPropertyValue("checker.commands");
 
-        return new String[] {
+        return new String[]{
                 "java",
                 "-jar",
                 checkerJar,

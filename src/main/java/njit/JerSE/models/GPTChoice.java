@@ -5,16 +5,27 @@ package njit.JerSE.models;
  * <p>
  * In the context of the ChatGPT API, each request can result in multiple potential outputs or 'choices'.
  * This record captures one individual choice with its details.
- *
- * <p><strong>Note:</strong> It's important that the field names remain in snake_case for API compatibility.
- *
- * @param index         the position or ranking of this choice among others
- * @param message       the {@link GPTMessage} object that encapsulates the content and role of this choice
- * TODO: Is this usually empty (or maybe null)?
- * @param finish_reason the reason provided by ChatGPT for concluding or stopping at this choice
+ * <p>
+ * <strong>Note:</strong> It's important that the field names remain in snake_case for API compatibility.
  */
 public record GPTChoice(
+        /**
+         * The position or ranking of this choice among other potential outputs provided by the API.
+         */
         int index,
+
+        /**
+         * Encapsulates the role and content of this choice.
+         */
         GPTMessage message,
+
+        /**
+         * The reason provided by ChatGPT for concluding or stopping at this choice.
+         * It may indicate reasons such as reaching the maximum token limit or
+         * achieving satisfactory completion of the prompt. It's possible that this
+         * field could be empty or null if the API doesn't provide a specific reason
+         * for some interactions.
+         */
         String finish_reason
-) {}
+) {
+}
