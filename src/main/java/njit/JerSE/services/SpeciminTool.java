@@ -18,7 +18,7 @@ public class SpeciminTool {
      */
     public void runSpeciminTool() {
         System.out.println("Running SpeciminTool...");
-        Configuration config = new Configuration();
+        Configuration config = Configuration.getInstance();
         String outputDirectory = "this path would be the same as the targetRoot";
         String speciminPath = config.getPropertyValue("specimin.tool.path");
         String targetRoot = "target root would be provided in the arguments of main";

@@ -4,6 +4,8 @@ import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -23,9 +25,11 @@ import java.util.stream.Collectors;
 public class JavaCodeParser {
 
     private final Pattern javaCodeBlockPattern;
+    private static final Logger LOGGER = LogManager.getLogger(JavaCodeParser.class);
 
     public JavaCodeParser() {
         this.javaCodeBlockPattern = Pattern.compile("```java(.*?)```", Pattern.DOTALL);
+        LOGGER.info("JavaCodeParser initialized");
     }
 
     /**
@@ -67,10 +71,11 @@ public class JavaCodeParser {
                         .map(p -> p.getType() + " " + p.getName())
                         .collect(Collectors.joining(", "));
 
+                LOGGER.debug("Extracted method signature: ReturnType={} MethodName={} Parameters={}", returnType, methodName, parameters);
                 return Optional.of(new MethodSignature(returnType, methodName, parameters));
             }
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (Exception ex) {
+            LOGGER.error("Failed to extract method signature: ", ex);
         }
         return Optional.empty(); // return an empty Optional if no value is present
     }
@@ -82,13 +87,18 @@ public class JavaCodeParser {
      * @return the body of the method as a string, or an empty string if not found
      */
     public String extractMethodBody(String method) {
-        CompilationUnit cu = StaticJavaParser.parse(method);
-        MethodDeclaration methodDeclaration = cu.findFirst(MethodDeclaration.class).orElse(null);
+        try {
+            CompilationUnit cu = StaticJavaParser.parse(method);
+            MethodDeclaration methodDeclaration = cu.findFirst(MethodDeclaration.class).orElse(null);
 
-        if (methodDeclaration != null && methodDeclaration.getBody().isPresent()) {
-            return methodDeclaration.getBody().get().toString();
-        } else {
-            System.out.println("Method body not found.");
+            if (methodDeclaration != null && methodDeclaration.getBody().isPresent()) {
+                return methodDeclaration.getBody().get().toString();
+            } else {
+                LOGGER.warn("Method body not found.");
+            }
+
+        } catch (Exception ex) {
+            LOGGER.error("Failed to extract method body: ", ex);
         }
         return "";
     }
@@ -101,18 +111,24 @@ public class JavaCodeParser {
      * @throws FileNotFoundException If the file cannot be read
      */
     public ClassOrInterfaceDeclaration extractFirstClassFromFile(String filePath) throws FileNotFoundException {
-        CompilationUnit cu;
-        // Use try-with-resources to ensure FileInputStream gets closed
         try (FileInputStream fis = new FileInputStream(filePath)) {
-            cu = StaticJavaParser.parse(fis);
-        } catch (IOException e) {
-            throw new FileNotFoundException("Error reading file: " + e.getMessage());
+            CompilationUnit cu = StaticJavaParser.parse(fis);
+            List<ClassOrInterfaceDeclaration> classes = cu.findAll(ClassOrInterfaceDeclaration.class);
+
+            if (!classes.isEmpty()) {
+                return classes.get(0);
+            } else {
+                LOGGER.warn("No class or interface declarations found in file: {}", filePath);
+                throw new ClassNotFoundException("No class or interface declarations found in file: " + filePath);
+            }
+
+        } catch (IOException ex) {
+            LOGGER.error("Error reading file: {}", filePath, ex);
+            throw new FileNotFoundException("Error reading file: " + ex.getMessage());
+        } catch (ClassNotFoundException ex) {
+            LOGGER.error("No class or interface declarations found in file: {}", filePath, ex);
+            throw new RuntimeException(ex);
         }
-
-        // Get all the class and interface declarations from the file
-        List<ClassOrInterfaceDeclaration> classes = cu.findAll(ClassOrInterfaceDeclaration.class);
-
-        return classes.get(0);
     }
 
     /**
@@ -127,6 +143,7 @@ public class JavaCodeParser {
         if (matcher.find()) {
             String matchedGroup = matcher.group(1);
             if (matchedGroup != null) {
+                LOGGER.debug("Extracted Java code block from response: {}", matchedGroup);
                 return matchedGroup.trim();
             }
         }

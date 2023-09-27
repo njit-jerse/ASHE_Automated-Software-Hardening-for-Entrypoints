@@ -8,6 +8,8 @@ import njit.JerSE.services.MethodReplacementService;
 import njit.JerSE.utils.Configuration;
 import njit.JerSE.services.OpenAIService;
 import njit.JerSE.utils.JavaCodeParser;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -26,11 +28,13 @@ import java.net.http.HttpResponse;
  * Checker Framework.
  */
 public class ASHE {
+    private static final Logger LOGGER = LogManager.getLogger(ASHE.class);
+
     /**
      * Initializes the configuration settings for accessing GPT API and
      * setting up prompts.
      */
-    Configuration config = new Configuration();
+    Configuration config = Configuration.getInstance();
     private final String API_KEY = config.getPropertyValue("llm.api.key");
     private final String API_URI = config.getPropertyValue("llm.api.uri");
     private final String GPT_SYSTEM = config.getPropertyValue("gpt.message.system");
@@ -56,11 +60,11 @@ public class ASHE {
         String errorOutput = checkerFrameworkCompiler.compileWithCheckerFramework(sourceFile);
 
         if (errorOutput.isEmpty()) {
-            System.out.println("No errors found in the file.");
-            return; // No errors, so we exit early
+            LOGGER.info("No errors found in the file.");
+            return;
         }
 
-        System.out.println("Errors found in the file.");
+        LOGGER.warn("Errors found in the file.");
 
         while (!errorOutput.isEmpty()) {
 
@@ -78,27 +82,27 @@ public class ASHE {
             String codeBlock = extractor.extractJavaCodeBlockFromResponse(gptCorrection);
 
             if (codeBlock.isEmpty()) {
-                System.out.println("Could not extract code block from GPT response.");
-                return; // Exit the function if no code block is extracted
+                LOGGER.error("Could not extract code block from GPT response.");
+                return;
             }
 
             if (!methodReplacement.replacePreviousMethod(sourceFile, codeBlock)) {
-                System.out.println("Failed to write code to file.");
-                return; // Exit the function if writing to file fails
+                LOGGER.error("Failed to write code to file.");
+                return;
             }
 
-            System.out.println("File written successfully. Recompiling with Checker Framework to check for additional warnings...");
+            LOGGER.info("File written successfully. Recompiling with Checker Framework to check for additional warnings...");
 
             // This will be checked at the start of the next iteration
             errorOutput = checkerFrameworkCompiler.compileWithCheckerFramework(sourceFile);
 
             if (!errorOutput.isEmpty()) {
-                System.out.println("Additional error(s) found after recompiling.");
+                LOGGER.warn("Additional error(s) found after recompiling.");
             }
         }
 
-        System.out.println("No more errors found in the file.");
-        System.out.println("Exiting...");
+        LOGGER.info("No more errors found in the file.");
+        LOGGER.info("Exiting...");
     }
 
     /**
@@ -112,6 +116,8 @@ public class ASHE {
      * @throws InterruptedException  if the API call is interrupted
      */
     private String fetchGPTCorrection(String prompt) throws IOException, IllegalStateException, InterruptedException {
+        LOGGER.debug("Fetching GPT correction with prompt: {}", prompt);
+
         ApiService openAIService = new OpenAIService();
         ObjectMapper objectMapper = new ObjectMapper();
         HttpClient client = HttpClient.newHttpClient();
@@ -124,10 +130,12 @@ public class ASHE {
 
         if (httpResponse.statusCode() == 200) {
             GPTResponse gptResponse = objectMapper.readValue(httpResponse.body(), GPTResponse.class);
-            System.out.println("Successfully retrieved GPT Prompt response.");
+            LOGGER.info("Successfully retrieved GPT Prompt response.");
             return gptResponse.choices()[gptResponse.choices().length - 1].message().content();
         } else {
-            return "Error:" + System.lineSeparator() + httpResponse.statusCode() + " " + httpResponse.body();
+            String errorMsg = "Error:" + System.lineSeparator() + httpResponse.statusCode() + " " + httpResponse.body();
+            LOGGER.error(errorMsg);
+            return errorMsg;
         }
     }
 
@@ -139,10 +147,13 @@ public class ASHE {
      * for the GPT API call
      */
     private GPTRequest createGptRequestObject(String prompt) {
+        LOGGER.debug("Creating GPT request object with prompt: {}", prompt);
+
         GPTMessage systemMessage = new GPTMessage(GPT_SYSTEM, GPT_SYSTEM_CONTENT);
         GPTMessage userMessage = new GPTMessage(GPT_USER, prompt);
         GPTMessage[] messages = new GPTMessage[]{systemMessage, userMessage};
 
+        LOGGER.debug("GPT request object created successfully.");
         return new GPTRequest(GPTModel.GPT_4, messages);
     }
 }

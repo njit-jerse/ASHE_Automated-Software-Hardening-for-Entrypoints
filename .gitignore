@@ -43,3 +43,8 @@ bin/
 
 ### Config Properties ###
 /src/main/resources/config.properties
+
+### Logs ###
+logs/*
+### Keep an empty directory placeholder ###
+!logs/.gitkeep

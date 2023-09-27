@@ -8,6 +8,8 @@ import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.Parameter;
 import njit.JerSE.utils.JavaCodeParser;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -24,6 +26,7 @@ import java.util.Optional;
  * facilitating the replacement of methods with new implementations provided as input.
  */
 public class MethodReplacementService {
+    private static final Logger LOGGER = LogManager.getLogger(MethodReplacementService.class);
 
     /**
      * Replaces an existing Java method in the specified file with a new, updated method.
@@ -33,26 +36,29 @@ public class MethodReplacementService {
      * @return {@code true} if the replacement operation was successful; {@code false} otherwise.
      */
     public boolean replacePreviousMethod(String filePath, String newMethodCode) {
+        LOGGER.info("Attempting to replace method in file: {}", filePath);
+
         Path path = Paths.get(filePath);
         JavaCodeParser javaCodeParser = new JavaCodeParser();
 
         Optional<JavaCodeParser.MethodSignature> methodSignatureOpt = javaCodeParser.extractMethodSignature(newMethodCode);
         if (methodSignatureOpt.isEmpty() || !isValidMethodSignature(methodSignatureOpt.get())) {
-            System.out.println("Could not parse the provided method.");
+            LOGGER.error("Could not parse the provided method.");
             return false;
         }
 
         CompilationUnit cu;
         try {
             cu = StaticJavaParser.parse(path);
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (Exception ex) {
+            String errorMessage = (ex.getMessage() != null) ? ex.getMessage() : "Unknown error";
+            LOGGER.error("Error while parsing file {}: {}", path, errorMessage);
             return false;
         }
 
         Optional<ClassOrInterfaceDeclaration> mainClassOpt = getMainClass(cu);
         if (mainClassOpt.isEmpty()) {
-            System.out.println("No class found in " + path);
+            LOGGER.error("No class found in {}", path);
             return false;
         }
 
@@ -60,7 +66,13 @@ public class MethodReplacementService {
         mainClassOpt.get().getMembers().clear();
         mainClassOpt.get().addMember(newMethod);
 
-        return writeCompilationUnitToFile(path, cu);
+        boolean didWriteCUToFile = writeCompilationUnitToFile(path, cu);
+        if (didWriteCUToFile) {
+            LOGGER.info("Method replacement succeeded for file: {}", filePath);
+        } else {
+            LOGGER.error("Method replacement failed for file: {}", filePath);
+        }
+        return didWriteCUToFile;
     }
 
     /**
@@ -71,9 +83,20 @@ public class MethodReplacementService {
      * @return {@code true} if the method signature is complete and a valid Java method signature; {@code false} otherwise.
      */
     private boolean isValidMethodSignature(JavaCodeParser.MethodSignature signature) {
-        return signature.returnType() != null &&
-               signature.methodName() != null &&
-               signature.parameters() != null;
+        boolean isValidSig =
+                signature.returnType() != null &&
+                        signature.methodName() != null &&
+                        signature.parameters() != null;
+
+        if (isValidSig) {
+            LOGGER.debug("Java method signature is valid: returnType={}, methodName={}, parameters={}",
+                    signature.returnType(), signature.methodName(), signature.parameters());
+        } else {
+            LOGGER.warn("Invalid Java method signature detected: returnType={}, methodName={}, parameters={}",
+                    signature.returnType(), signature.methodName(), signature.parameters());
+        }
+
+        return isValidSig;
     }
 
     /**
@@ -83,21 +106,33 @@ public class MethodReplacementService {
      * @return an optional containing the primary class declaration if found; an empty optional otherwise
      */
     private Optional<ClassOrInterfaceDeclaration> getMainClass(CompilationUnit cu) {
-        return cu.getPrimaryType().flatMap(BodyDeclaration::toClassOrInterfaceDeclaration);
+        Optional<ClassOrInterfaceDeclaration> mainClassOpt = cu.getPrimaryType().flatMap(BodyDeclaration::toClassOrInterfaceDeclaration);
+
+        if (mainClassOpt.isPresent()) {
+            LOGGER.debug("Retrieved main class declaration: {}", mainClassOpt.get().getNameAsString());
+        } else {
+            LOGGER.warn("No main class declaration found in the provided compilation unit.");
+        }
+
+        return mainClassOpt;
     }
 
     /**
      * Creates a new {@link MethodDeclaration} object from the provided method signature.
      *
-     * @param signature the signature of the method to be created
-     * @param parser the Java code parser
+     * @param signature     the signature of the method to be created
+     * @param parser        the Java code parser
      * @param newMethodCode the new method code
      * @return the newly constructed {@link MethodDeclaration} object
      */
     private MethodDeclaration createNewMethodFromSignature(JavaCodeParser.MethodSignature signature, JavaCodeParser parser, String newMethodCode) {
+        LOGGER.info("Creating a new method from the provided signature.");
+
         MethodDeclaration newMethod = new MethodDeclaration();
         newMethod.setType(signature.returnType());
         newMethod.setName(signature.methodName());
+
+        LOGGER.debug("Set method name to '{}' and return type to '{}'.", signature.methodName(), signature.returnType());
 
         String[] rawParameters = signature.parameters().split(",");
         boolean isRawParamsEmpty = Arrays.stream(rawParameters).anyMatch(param -> param.trim().isEmpty());
@@ -114,14 +149,21 @@ public class MethodReplacementService {
                 if (parts.length == 2) {
                     Parameter parameter = new Parameter(StaticJavaParser.parseType(parts[0]), parts[1]);
                     parameters.add(parameter);
+                    LOGGER.debug("Added parameter of type '{}' with name '{}'.", parts[0], parts[1]);
                 } else {
+                    LOGGER.error("Invalid parameter format encountered: '{}'. Throwing exception.", rawParam);
                     throw new IllegalArgumentException("Invalid parameter: " + rawParam);
                 }
             }
             newMethod.setParameters(parameters);
+            LOGGER.debug("All parameters set for the method.");
+        } else {
+            LOGGER.debug("No parameters provided for the method.");
         }
 
         newMethod.setBody(StaticJavaParser.parseBlock(parser.extractMethodBody(newMethodCode)));
+        LOGGER.debug("Set method body.");
+
         return newMethod;
     }
 
@@ -129,16 +171,17 @@ public class MethodReplacementService {
      * Writes the updated compilation unit back to the file.
      *
      * @param path the path to the Java file
-     * @param cu the updated compilation unit
+     * @param cu   the updated compilation unit
      * @return {@code true} if the write operation was successful; {@code false} otherwise.
      */
     private boolean writeCompilationUnitToFile(Path path, CompilationUnit cu) {
         try {
-            System.out.println("Writing to file...");
+            LOGGER.debug("Writing updated compilation unit to file...");
             Files.write(path, cu.toString().getBytes(), StandardOpenOption.TRUNCATE_EXISTING);
             return true;
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (IOException ex) {
+            String errorMessage = (ex.getMessage() != null) ? ex.getMessage() : "Unknown error";
+            LOGGER.error("Error writing to file {}: {}", path, errorMessage);
             return false;
         }
     }
