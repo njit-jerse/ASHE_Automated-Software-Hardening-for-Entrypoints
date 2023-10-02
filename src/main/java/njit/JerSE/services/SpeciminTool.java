@@ -6,6 +6,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -16,32 +17,27 @@ public class SpeciminTool {
     /**
      * Note: This method is still under development and does not run properly.
      */
-    public void runSpeciminTool() {
+    public void runSpeciminTool(String outputDirectory, String root, String targetFile, String targetMethod) {
         System.out.println("Running SpeciminTool...");
+
         Configuration config = Configuration.getInstance();
-        String outputDirectory = "this path would be the same as the targetRoot";
         String speciminPath = config.getPropertyValue("specimin.tool.path");
-        String targetRoot = "target root would be provided in the arguments of main";
-        String targetFile = "target file would be provided in the arguments of main";
-        String targetMethod = "target method would be provided in the arguments of main";
+
         try {
             String myArgs = String.format("--outputDirectory \"%s\" --root \"%s\" --targetFile \"%s\" --targetMethod \"%s\"",
-                    outputDirectory, targetRoot, targetFile, targetMethod);
+                    outputDirectory, root, targetFile, targetMethod);
             String argsWithOption = "--args=" + myArgs;
 
-            ProcessBuilder builder = new ProcessBuilder(
-                    speciminPath + "/gradlew",
-                    "run",
-                    argsWithOption
-            );
-
-
-            List<String> commands = builder.command();
+            List<String> commands = new ArrayList<>();
+            commands.add(speciminPath + "/gradlew");
+            commands.add("run");
+            commands.add(argsWithOption);
             System.out.println("Executing command:");
             for (String command : commands) {
                 System.out.println(command);
             }
 
+            ProcessBuilder builder = new ProcessBuilder(commands);
             builder.redirectErrorStream(true); // This merges the error and output streams
             builder.directory(new File(speciminPath));
 

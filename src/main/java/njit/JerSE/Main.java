@@ -47,6 +47,6 @@ public class Main {
     // TODO: Receive help SPECIMIN team to run SPECIMIN tool
 //    public static void main(String[] args) {
 //        SpeciminTool specimin = new SpeciminTool();
-//        specimin.runSpeciminTool();
+//        specimin.runSpeciminTool(args[0], args[1], args[2], args[3]);
 //    }
 }
