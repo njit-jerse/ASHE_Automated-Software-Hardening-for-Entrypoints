@@ -1,5 +1,6 @@
 package njit.JerSE.utils;
 
+import com.github.javaparser.ParseProblemException;
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
@@ -59,23 +60,23 @@ public class JavaCodeParser {
             if (methodDeclarationOpt.isPresent()) {
                 MethodDeclaration methodDeclaration = methodDeclarationOpt.get();
 
-                // Get return type
+                // Method: returnType, name, and params
                 String returnType = methodDeclaration.getType().asString();
-
-                // Get method name
-                String methodName = methodDeclaration.getName().asString();
-
-                // Get method parameters
-                String parameters = methodDeclaration.getParameters()
+                String name = methodDeclaration.getName().asString();
+                String params = methodDeclaration.getParameters()
                         .stream()
-                        .map(p -> p.getType() + " " + p.getName())
+                        .map(p -> p.getType().asString() + " " + p.getName().asString())
                         .collect(Collectors.joining(", "));
 
-                LOGGER.debug("Extracted method signature: ReturnType={} MethodName={} Parameters={}", returnType, methodName, parameters);
-                return Optional.of(new MethodSignature(returnType, methodName, parameters));
+                LOGGER.debug("Extracted method signature: ReturnType={} Name={} Parameters={}", returnType, name, params);
+                return Optional.of(new MethodSignature(returnType, name, params));
             }
+        } catch (ParseProblemException ex) {
+            LOGGER.error("Failed to parse method due to syntax error(s): {}", ex.getProblems());
+            return Optional.empty();
         } catch (Exception ex) {
-            LOGGER.error("Failed to extract method signature: ", ex);
+            LOGGER.error("Failed to extract method signature due to an unexpected error: ", ex);
+            return Optional.empty();
         }
         return Optional.empty(); // return an empty Optional if no value is present
     }

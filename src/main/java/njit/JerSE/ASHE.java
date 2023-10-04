@@ -80,7 +80,7 @@ public class ASHE {
 
             LOGGER.info("Code block extracted from GPT response:" + System.lineSeparator() + codeBlock);
 
-            if (!methodReplacement.replacePreviousMethod(sourceFile, codeBlock)) {
+            if (!methodReplacement.replaceMethodInFile(sourceFile, codeBlock)) {
                 LOGGER.error("Failed to write code to file.");
                 return;
             }

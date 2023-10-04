@@ -35,7 +35,7 @@ public class MethodReplacementService {
      * @param newMethodCode the new method code to replace the existing method.
      * @return {@code true} if the replacement operation was successful; {@code false} otherwise.
      */
-    public boolean replacePreviousMethod(String filePath, String newMethodCode) {
+    public boolean replaceMethodInFile(String filePath, String newMethodCode) {
         LOGGER.info("Attempting to replace method in file: {}", filePath);
 
         Path path = Paths.get(filePath);
@@ -63,8 +63,12 @@ public class MethodReplacementService {
         }
 
         MethodDeclaration newMethod = createNewMethodFromSignature(methodSignatureOpt.get(), javaCodeParser, newMethodCode);
-        mainClassOpt.get().getMembers().clear();
-        mainClassOpt.get().addMember(newMethod);
+
+        boolean wasMethodReplaced = replaceMethodInClassDeclaration(mainClassOpt.get(), newMethod, methodSignatureOpt.get());
+        if (!wasMethodReplaced) {
+            LOGGER.error("No matching method found to replace in file: {}", filePath);
+            return false;
+        }
 
         boolean didWriteCUToFile = writeCompilationUnitToFile(path, cu);
         if (didWriteCUToFile) {
@@ -73,6 +77,77 @@ public class MethodReplacementService {
             LOGGER.error("Method replacement failed for file: {}", filePath);
         }
         return didWriteCUToFile;
+    }
+
+    /**
+     * Replaces a method in the specified class declaration with a new method if it matches the provided method signature.
+     *
+     * @param classDecl         The class or interface declaration where the method replacement should be performed.
+     * @param newMethod         The new method declaration that will replace the existing method if a match is found.
+     * @param methodSignature   The signature of the method to be replaced. Replacement is done based on this signature.
+     * @return                  True if a method with the provided signature was found and replaced, otherwise false.
+     * <p>
+     * Note: If multiple methods have the same signature, only the first encountered will be replaced.
+     * TODO: Add support for replacing a specific method if multiple methods have the same signature.
+     * TODO: I.E. take into account method overriding.
+     */
+    private boolean replaceMethodInClassDeclaration(ClassOrInterfaceDeclaration classDecl, MethodDeclaration newMethod, JavaCodeParser.MethodSignature methodSignature) {
+        for (MethodDeclaration method : classDecl.getMethods()) {
+            // If method has the same signature as the one we want to replace, replace it
+            if (doesMethodSignatureMatch(method, methodSignature)) {
+                method.replace(newMethod);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Checks if the provided method matches the target method signature.
+     * <p>
+     * This method performs the match-check based on:
+     * 1. Method name
+     * 2. Number of parameters
+     * 3. Type of parameters (order matters)
+     * 4. Return type
+     * Parameter names and parameter default values/annotations are not considered during the match.
+     *
+     * @param method            The method declaration to check against the target signature.
+     * @param targetSignature   The target method signature to which the provided method is compared.
+     * @return                  True if the method matches the target signature, otherwise false.
+     * <p>
+     * Example Usage:
+     * doesMethodSignatureMatch(someMethodDecl, new MethodSignature("methodName", "paramType1, paramType2", "returnType"));
+     */
+    private boolean doesMethodSignatureMatch(MethodDeclaration method, JavaCodeParser.MethodSignature targetSignature) {
+        // Check if the method name matches
+        if (!method.getNameAsString().equals(targetSignature.methodName())) {
+            return false;
+        }
+
+        // Split the parameters string into an array and check if the parameter count matches
+        String[] targetParameterTypes = targetSignature.parameters().split(",\\s*");
+        boolean noParameters = targetParameterTypes.length == 1 && targetParameterTypes[0].isEmpty();
+
+        if (noParameters && method.getParameters().isEmpty()) {
+            // If both method and target have no parameters, they match
+            return method.getTypeAsString().equals(targetSignature.returnType());
+        } else if (method.getParameters().size() != targetParameterTypes.length) {
+            // If parameter counts (excluding the no parameter case) don't match, return false
+            return false;
+        }
+
+        // Check if the parameter types match
+        for (int i = 0; i < method.getParameters().size(); i++) {
+            String actualParamType = method.getParameter(i).getType().asString();
+            String expectedParamType = targetParameterTypes[i].split(" ")[0]; // Only compare type, not name
+
+            if (!actualParamType.equals(expectedParamType)) {
+                return false;
+            }
+        }
+
+        return method.getTypeAsString().equals(targetSignature.returnType());
     }
 
     /**
