@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
 
 /**
  * The ApiService interface provides methods for interacting with an API.
@@ -30,5 +32,5 @@ public interface ApiService {
      * @throws IOException If there's a network or general I/O error.
      * @throws InterruptedException If the request is interrupted
      */
-    HttpResponse<String> apiResponse(HttpRequest request, HttpClient client) throws IOException, InterruptedException;
+    HttpResponse<String> apiResponse(HttpRequest request, HttpClient client) throws IOException, InterruptedException, ExecutionException, TimeoutException;
 }

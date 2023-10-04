@@ -4,6 +4,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
 
 /**
  * The main entry point for the application.
@@ -22,7 +24,7 @@ public class Main {
      * @throws IllegalStateException    if the API response from the GPT is not as expected
      * @throws InterruptedException     if the API request is interrupted
      */
-    public static void main(String[] args) throws IllegalArgumentException, IOException, IllegalStateException, InterruptedException {
+    public static void main(String[] args) throws IllegalArgumentException, IOException, IllegalStateException, InterruptedException, ExecutionException, TimeoutException {
         if (args.length == 0) {
             LOGGER.error("No arguments provided.");
             throw new IllegalArgumentException("No arguments provided.");

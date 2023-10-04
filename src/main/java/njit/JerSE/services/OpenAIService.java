@@ -9,6 +9,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.concurrent.*;
 
 /**
  * Service implementation for interacting with the OpenAI API.
@@ -43,22 +44,56 @@ public class OpenAIService implements ApiService {
     }
 
     /**
-     * Sends the provided HttpRequest and retrieves the API response.
+     * Sends the provided HttpRequest asynchronously, logs waiting status at a fixed rate,
+     * and retrieves the API response, ensuring a response (or timeout) within a specified duration.
+     * <p>
+     * This method will send an HTTP request using the provided HttpClient and will wait for a
+     * response up to 60 seconds. While waiting for the response, it logs an info message every
+     * 10 seconds. If a response is not received within 60 seconds, an IOException is thrown
+     * and a fatal log message is recorded. It ensures a non-null request and client are provided
+     * and throws IllegalArgumentException if either is null.
      *
-     * @param request the HttpRequest to send
-     * @param client  the HttpClient used to send the request
-     * @return the HttpResponse containing the APIs response
-     * @throws IOException          if an I/O error occurs when sending or receiving
-     * @throws InterruptedException If the operation is interrupted
+     * @param request the HttpRequest object to be sent to the API. Must be non-null.
+     * @param client  the HttpClient used to send the request. Must be non-null.
+     * @return HttpResponse&lt;String&gt; the response from the API
+     * @throws IllegalArgumentException if either request or client is null
+     * @throws IOException              if an I/O error occurs, or if the response is not received within 60 seconds
+     * @throws InterruptedException     if the operation is interrupted
+     * @throws ExecutionException       if the CompletableFuture throws an exception while getting the response
+     * @throws TimeoutException         if waiting for the CompletableFuture times out
      */
     @Override
-    public HttpResponse<String> apiResponse(HttpRequest request, HttpClient client) throws IOException, InterruptedException {
-        LOGGER.info("Sending API request to {}", request.uri());
+    public HttpResponse<String> apiResponse(HttpRequest request, HttpClient client)
+            throws IOException, InterruptedException, ExecutionException, TimeoutException {
 
-        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        if (request == null || client == null) {
+            throw new IllegalArgumentException("Request or Client cannot be null");
+        }
 
-        LOGGER.debug("API response received with status code {}", response.statusCode());
+        LOGGER.info("Sending API request to " + request.uri());
 
-        return response;
+        CompletableFuture<HttpResponse<String>> futureResponse =
+                client.sendAsync(request, HttpResponse.BodyHandlers.ofString());
+
+        // Log "Waiting for the API response..." every 10 seconds while waiting for the response.
+        ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
+        executor.scheduleAtFixedRate(
+                () -> LOGGER.info("Waiting for API response..."),
+                0,
+                10,
+                TimeUnit.SECONDS);
+
+        try {
+            // Get the API response or throw a TimeoutException if it takes longer than 60 seconds.
+            HttpResponse<String> response = futureResponse.get(60, TimeUnit.SECONDS);
+
+            LOGGER.info("API response received with status code " + response.statusCode());
+            return response;
+        } catch (TimeoutException e) {
+            LOGGER.fatal("API response took too long to be received");
+            throw new IOException("API response took too long", e);
+        } finally {
+            executor.shutdown();
+        }
     }
 }

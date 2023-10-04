@@ -14,7 +14,7 @@ public record GPTUsage(
         int prompt_tokens,
 
         /**
-         * The number of tokens used in the APIs response or completion.
+         * The number of tokens used in the API's response or completion.
          */
         int completion_tokens,
 
