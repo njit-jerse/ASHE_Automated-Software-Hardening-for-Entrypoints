@@ -48,3 +48,8 @@ bin/
 logs/*
 ### Keep an empty directory placeholder ###
 !logs/.gitkeep
+
+### SPECIMIN Folder  where files are minimized ###
+specimin/*
+### Keep an empty directory placeholder ###
+specimin/.gitkeep

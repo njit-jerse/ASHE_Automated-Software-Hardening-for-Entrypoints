@@ -11,6 +11,7 @@ import njit.JerSE.utils.JavaCodeParser;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -259,5 +260,30 @@ public class MethodReplacementService {
             LOGGER.error("Error writing to file {}: {}", path, errorMessage);
             return false;
         }
+    }
+
+    /**
+     * Replaces the original method in the target file with a checked (modified) method.
+     *
+     * @param checkedFile The path to the Java file containing the checked (Checker Framework compiled) method.
+     * @param targetFile  The path to the Java file containing the original method to be replaced.
+     * @return true if the method replacement was successful; false otherwise.
+     * @throws FileNotFoundException If any of the files are not found.
+     */
+    public boolean replaceOriginalTargetMethod(String checkedFile, String targetFile) throws FileNotFoundException {
+        MethodReplacementService methodReplacement = new MethodReplacementService();
+        JavaCodeParser extractor = new JavaCodeParser();
+
+        String checkedClass = String.valueOf(extractor.extractFirstClassFromFile(checkedFile));
+
+        boolean wasOriginalMethodReplaced = methodReplacement.replaceMethodInFile(targetFile, checkedClass);
+
+        if (!wasOriginalMethodReplaced) {
+            LOGGER.error("Failed to replace the original method in the target file.");
+            throw new RuntimeException("Failed to replace original method in file.");
+        }
+
+        LOGGER.info("Original method in the target file replaced successfully.");
+        return true;
     }
 }
