@@ -49,7 +49,7 @@ logs/*
 ### Keep an empty directory placeholder ###
 !logs/.gitkeep
 
-### SPECIMIN Folder  where files are minimized ###
+### Specimin Folder  where files are minimized ###
 specimin/*
 ### Keep an empty directory placeholder ###
 specimin/.gitkeep

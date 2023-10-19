@@ -1,9 +1,9 @@
-package njit.JerSE;
+package edu.njit.jerse;
 
-import njit.JerSE.services.MethodReplacementService;
-import njit.JerSE.services.SpeciminTool;
-import njit.JerSE.utils.Configuration;
-import njit.JerSE.utils.JavaCodeCorrector;
+import edu.njit.jerse.services.MethodReplacementService;
+import edu.njit.jerse.services.SpeciminTool;
+import edu.njit.jerse.utils.JavaCodeCorrector;
+import edu.njit.jerse.utils.JavaCodeParser;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -13,13 +13,13 @@ import java.util.concurrent.TimeoutException;
 
 /**
  * The {@code ASHE} class orchestrates the correction, minimization, and method
- * replacement processes of Java files, leveraging the SPECIMIN tool, Checker
+ * replacement processes of Java files, leveraging the Specimin tool, Checker
  * Framework, and GPT-aided error correction to refine and enhance Java code.
  * <p>
  * The ASHE execution flow encompasses:
  * <ol>
  *     <li>
- *         Utilizing the SPECIMIN tool to minimize specified methods in a target Java file,
+ *         Utilizing the Specimin tool to minimize specified methods in a target Java file,
  *         storing the minimized class in a dedicated 'specimin' directory within the ASHE project.
  *     </li>
  *     <li>
@@ -58,41 +58,57 @@ import java.util.concurrent.TimeoutException;
 public class ASHE {
     private static final Logger LOGGER = LogManager.getLogger(ASHE.class);
 
-    Configuration config = Configuration.getInstance();
-    private final String outputDirectory = config.getPropertyValue("specimin.output.directory");
-
     /**
      * Orchestrates the running of ASHE's functionality by first minimizing
-     * the target file with the SPECIMIN tool, then correcting its errors using GPT,
+     * the target file with the Specimin tool, then correcting its errors using GPT,
      * and finally replacing the original method in the target file.
      *
      * @param root         the root path where the target file is located
-     * @param targetFile   the Java file to be minimized, corrected, and modified
-     * @param targetMethod the target method in the Java file
+     * @param targetFile   the Java file to be minimized, corrected, and modified.
+     *                     Required format: "[path]/[to]/[package]/ClassName.java"
+     *                     Example: "com/example/package/MyClass.java"
+     * @param targetMethod the target method in the Java file.
+     *                     Required format: "package.name.ClassName#methodName()"
+     *                     with or without parameter types depending on the method declaration.
+     *                     For example:
+     *                     <ul>
+     *                         <li>"com.example.package.MyClass#myMethod(ParamType1, ParamType2, ...)".</li>
+     *                         <li>"com.example.package.MyClass#myMethod()".</li>
+     *                     </ul>
      * @throws IOException          if an I/O error occurs during file operations
      * @throws ExecutionException   if an exception was thrown during task execution
      * @throws InterruptedException if the current thread was interrupted while waiting
      * @throws TimeoutException     if a timeout was encountered during task execution
      */
-    void run(String root, String targetFile, String targetMethod) throws IOException, ExecutionException, InterruptedException, TimeoutException {
+    public void run(String root, String targetFile, String targetMethod) throws IOException, ExecutionException, InterruptedException, TimeoutException {
         LOGGER.info("Running ASHE...");
 
         JavaCodeCorrector corrector = new JavaCodeCorrector();
+        JavaCodeParser extractor = new JavaCodeParser();
+        SpeciminTool speciminTool = new SpeciminTool();
         MethodReplacementService methodReplacement = new MethodReplacementService();
-        SpeciminTool specimin = new SpeciminTool();
 
-        boolean didTargetFileMinimize = corrector.minimizeTargetFile(outputDirectory, root, targetFile, targetMethod);
+        boolean didTargetFileMinimize = corrector.minimizeTargetFile(root, targetFile, targetMethod);
         if (!didTargetFileMinimize) {
             LOGGER.error("Target file failed to minimize.");
             throw new RuntimeException("Target file failed to minimize.");
         }
 
-        String sourceFilePath = outputDirectory + "/" + targetFile;
+        String speciminTempDir = speciminTool.runSpeciminTool(root, targetFile, targetMethod);
 
-        boolean errorsReplacedInTargetFile = corrector.fixTargetFileErrorsWithGPT(sourceFilePath);
+        if (speciminTempDir.isEmpty()) {
+            LOGGER.error("Error obtaining Specimin directory.");
+            throw new RuntimeException("Error obtaining Specimin directory.");
+        }
+
+        final String sourceFilePath = speciminTempDir + "/" + targetFile;
+
+        boolean errorsReplacedInTargetFile = corrector.fixTargetFileErrorsWithGPT(sourceFilePath, targetMethod);
         if (!errorsReplacedInTargetFile) {
-            if(corrector.checkedFileError(sourceFilePath).isEmpty()){
+            if (corrector.checkedFileError(sourceFilePath).isEmpty()) {
                 LOGGER.info("No errors found in the file, no replacements needed.");
+                LOGGER.info("Exiting...");
+                return;
             } else {
                 LOGGER.error("Errors were found but not replaced with GPT response.");
                 throw new RuntimeException("Errors were not replaced with GPT response.");
@@ -100,22 +116,15 @@ public class ASHE {
         }
         LOGGER.info("Errors replaced with GPT response successfully.");
 
+        String methodName = extractor.extractMethodName(targetMethod);
         String originalFilePath = root + "/" + targetFile;
-        boolean isOriginalMethodReplaced = methodReplacement.replaceOriginalTargetMethod(sourceFilePath, originalFilePath);
+        boolean isOriginalMethodReplaced = methodReplacement.replaceOriginalTargetMethod(sourceFilePath, originalFilePath, methodName);
 
         if (!isOriginalMethodReplaced) {
             LOGGER.error("Original method was not replaced.");
             throw new RuntimeException("Original method was not replaced.");
         }
         LOGGER.info("Original method replaced successfully.");
-
-        boolean minimizedDirectoryDeleted = specimin.removeMinimizedDirectory(outputDirectory, targetFile);
-        if (!minimizedDirectoryDeleted) {
-            LOGGER.error("Minimized directory was not deleted.");
-            throw new RuntimeException("Minimized directory was not deleted.");
-        }
-        LOGGER.info("Minimized directory deleted successfully.");
-
         LOGGER.info("Exiting...");
     }
 
@@ -123,20 +132,20 @@ public class ASHE {
      * Entry point of the ASHE application. It expects three command-line arguments,
      * which are used to initiate the run of ASHE functionality. The arguments specify
      * the root path, target Java file, and target method to be processed. These
-     * arguments are necessary to utilize the specified minimization with SEPCIMIN.
+     * arguments are necessary to utilize the specified minimization with Specimin.
      *
      * @param args command-line arguments, expected order:
-     * <ol>
-     *     <li>
-     *         root path of the target Java file
-     *     </li>
-     *     <li>
-     *         name of the target Java file
-     *     </li>
-     *     <li>
-     *         name of the target method within the Java file
-     *     </li>
-     * </ol>
+     *             <ol>
+     *                 <li>
+     *                     root path of the target Java file
+     *                 </li>
+     *                 <li>
+     *                     name of the target Java file
+     *                 </li>
+     *                 <li>
+     *                     name and parameter types of the target method within the Java file
+     *                 </li>
+     *             </ol>
      * @throws IOException          if an I/O error occurs during file operations
      * @throws ExecutionException   if an exception was thrown during task execution
      * @throws InterruptedException if the current thread was interrupted while waiting
@@ -148,7 +157,7 @@ public class ASHE {
             throw new IllegalArgumentException("Invalid number of arguments provided.");
         }
 
-        // SPECIMIN arguments
+        // Specimin arguments
         String root = args[0];
         String targetFile = args[1];
         String targetMethod = args[2];

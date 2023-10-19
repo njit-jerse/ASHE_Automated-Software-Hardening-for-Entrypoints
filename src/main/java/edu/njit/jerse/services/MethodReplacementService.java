@@ -1,13 +1,12 @@
-package njit.JerSE.services;
+package edu.njit.jerse.services;
 
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.NodeList;
-import com.github.javaparser.ast.body.BodyDeclaration;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.Parameter;
-import njit.JerSE.utils.JavaCodeParser;
+import edu.njit.jerse.utils.JavaCodeParser;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -17,8 +16,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
-import java.util.Arrays;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Provides functionality to replace Java methods within a given file.
@@ -36,7 +35,7 @@ public class MethodReplacementService {
      * @param newMethodCode the new method code to replace the existing method.
      * @return {@code true} if the replacement operation was successful; {@code false} otherwise.
      */
-    public boolean replaceMethodInFile(String filePath, String newMethodCode) {
+    public boolean replaceMethodInFile(String filePath, String className, String newMethodCode) {
         LOGGER.info("Attempting to replace method in file: {}", filePath);
 
         Path path = Paths.get(filePath);
@@ -57,15 +56,15 @@ public class MethodReplacementService {
             return false;
         }
 
-        Optional<ClassOrInterfaceDeclaration> mainClassOpt = getMainClass(cu);
-        if (mainClassOpt.isEmpty()) {
+        Optional<ClassOrInterfaceDeclaration> classOpt = getClassDeclaration(cu, className);
+        if (classOpt.isEmpty()) {
             LOGGER.error("No class found in {}", path);
             return false;
         }
 
         MethodDeclaration newMethod = createNewMethodFromSignature(methodSignatureOpt.get(), javaCodeParser, newMethodCode);
 
-        boolean wasMethodReplaced = replaceMethodInClassDeclaration(mainClassOpt.get(), newMethod, methodSignatureOpt.get());
+        boolean wasMethodReplaced = replaceMethodInClassDeclaration(classOpt.get(), newMethod, methodSignatureOpt.get());
         if (!wasMethodReplaced) {
             LOGGER.error("No matching method found to replace in file: {}", filePath);
             return false;
@@ -83,10 +82,10 @@ public class MethodReplacementService {
     /**
      * Replaces a method in the specified class declaration with a new method if it matches the provided method signature.
      *
-     * @param classDecl         The class or interface declaration where the method replacement should be performed.
-     * @param newMethod         The new method declaration that will replace the existing method if a match is found.
-     * @param methodSignature   The signature of the method to be replaced. Replacement is done based on this signature.
-     * @return                  True if a method with the provided signature was found and replaced, otherwise false.
+     * @param classDecl       The class or interface declaration where the method replacement should be performed.
+     * @param newMethod       The new method declaration that will replace the existing method if a match is found.
+     * @param methodSignature The signature of the method to be replaced. Replacement is done based on this signature.
+     * @return True if a method with the provided signature was found and replaced, otherwise false.
      * <p>
      * Note: If multiple methods have the same signature, only the first encountered will be replaced.
      * TODO: Add support for replacing a specific method if multiple methods have the same signature.
@@ -104,18 +103,22 @@ public class MethodReplacementService {
     }
 
     /**
-     * Checks if the provided method matches the target method signature.
+     * Checks if the provided method matches the target method signature based on "override-equivalent" rules
+     * as defined in the Java Language Specification (JLS) - <a href="https://docs.oracle.com/javase/specs/jls/se8/html/jls-8.html#jls-8.4.2">§8.4.2</a>.
      * <p>
-     * This method performs the match-check based on:
-     * 1. Method name
-     * 2. Number of parameters
-     * 3. Type of parameters (order matters)
-     * 4. Return type
-     * Parameter names and parameter default values/annotations are not considered during the match.
+     * The match-check is performed based on:
+     * 1. Method name.
+     * 2. Number of parameters.
+     * 3. Type of parameters (order matters).
+     * 4. Return type - this deviates slightly from the JLS where only parameter types
+     *                  are considered for "override-equivalent".
+     * <p>
+     * Parameter names and parameter default values/annotations are not considered during
+     * the match. The handling of type variables needs to be verified.
      *
-     * @param method            The method declaration to check against the target signature.
-     * @param targetSignature   The target method signature to which the provided method is compared.
-     * @return                  True if the method matches the target signature, otherwise false.
+     * @param method          The method declaration to check against the target signature.
+     * @param targetSignature The target method signature to which the provided method is compared.
+     * @return True if the method matches the target signature, otherwise false.
      * <p>
      * Example Usage:
      * doesMethodSignatureMatch(someMethodDecl, new MethodSignature("methodName", "paramType1, paramType2", "returnType"));
@@ -127,13 +130,13 @@ public class MethodReplacementService {
         }
 
         // Split the parameters string into an array and check if the parameter count matches
-        String[] targetParameterTypes = targetSignature.parameters().split(",\\s*");
-        boolean noParameters = targetParameterTypes.length == 1 && targetParameterTypes[0].isEmpty();
+        List<String> targetParameterTypes = splitParameters(targetSignature.parameters());
+        boolean noParameters = targetParameterTypes.size() == 1 && targetParameterTypes.get(0).isEmpty();
 
         if (noParameters && method.getParameters().isEmpty()) {
             // If both method and target have no parameters, they match
             return method.getTypeAsString().equals(targetSignature.returnType());
-        } else if (method.getParameters().size() != targetParameterTypes.length) {
+        } else if (method.getParameters().size() != targetParameterTypes.size()) {
             // If parameter counts (excluding the no parameter case) don't match, return false
             return false;
         }
@@ -141,7 +144,7 @@ public class MethodReplacementService {
         // Check if the parameter types match
         for (int i = 0; i < method.getParameters().size(); i++) {
             String actualParamType = method.getParameter(i).getType().asString();
-            String expectedParamType = targetParameterTypes[i].split(" ")[0]; // Only compare type, not name
+            String expectedParamType = targetParameterTypes.get(i).split(" ")[0]; // Only compare type, not name
 
             if (!actualParamType.equals(expectedParamType)) {
                 return false;
@@ -149,6 +152,45 @@ public class MethodReplacementService {
         }
 
         return method.getTypeAsString().equals(targetSignature.returnType());
+    }
+
+    /**
+     * Splits a parameter string into individual parameter definitions, taking into account nested
+     * generic types. This method is designed to handle complex type definitions, such as {@code Map<String, Integer>}.
+     * <p>
+     * The method ensures that the split occurs only at the top-level commas, avoiding splits inside generic definitions.
+     *
+     * @param parameterString The entire parameter string that needs to be split into individual parameter definitions.
+     * @return A list of individual parameter definitions split from the input string.
+     */
+    private static List<String> splitParameters(String parameterString) {
+        List<String> result = new ArrayList<>();
+        int depth = 0;
+        StringBuilder currentParameter = new StringBuilder();
+
+        for (char c : parameterString.toCharArray()) {
+            switch (c) {
+                case '<':
+                    depth++;
+                    break;
+                case '>':
+                    depth--;
+                    break;
+                case ',':
+                    if (depth == 0) {
+                        result.add(currentParameter.toString().trim());
+                        currentParameter = new StringBuilder();
+                        continue;
+                    }
+                    break;
+            }
+            currentParameter.append(c);
+        }
+        if (!currentParameter.isEmpty()) {
+            result.add(currentParameter.toString().trim());
+        }
+
+        return result;
     }
 
     /**
@@ -176,21 +218,28 @@ public class MethodReplacementService {
     }
 
     /**
-     * Retrieves the primary class declaration from a given compilation unit.
+     * Retrieves the declaration of a specific class or interface by name from the
+     * provided compilation unit.
      *
-     * @param cu the compilation unit containing the Java source code
-     * @return an optional containing the primary class declaration if found; an empty optional otherwise
+     * @param cu        The compilation unit from which the class or interface
+     *                  declaration needs to be extracted.
+     * @param className The name of the class or interface whose declaration is
+     *                  to be fetched.
+     * @return An {@code Optional} containing the declaration of the target
+     *         class or interface if found; otherwise, an empty {@code Optional}.
      */
-    private Optional<ClassOrInterfaceDeclaration> getMainClass(CompilationUnit cu) {
-        Optional<ClassOrInterfaceDeclaration> mainClassOpt = cu.getPrimaryType().flatMap(BodyDeclaration::toClassOrInterfaceDeclaration);
+    private Optional<ClassOrInterfaceDeclaration> getClassDeclaration(CompilationUnit cu, String className) {
+        List<ClassOrInterfaceDeclaration> classes = cu.findAll(ClassOrInterfaceDeclaration.class);
 
-        if (mainClassOpt.isPresent()) {
-            LOGGER.debug("Retrieved main class declaration: {}", mainClassOpt.get().getNameAsString());
-        } else {
-            LOGGER.warn("No main class declaration found in the provided compilation unit.");
+        for (ClassOrInterfaceDeclaration classOrInterface : classes) {
+            if (classOrInterface.getNameAsString().equals(className)) {
+                LOGGER.debug("Retrieved the targeted class declaration: {}", className);
+                return Optional.of(classOrInterface);
+            }
         }
 
-        return mainClassOpt;
+        LOGGER.warn("The targeted class declaration was not found in the provided compilation unit.");
+        return Optional.empty();
     }
 
     /**
@@ -205,13 +254,18 @@ public class MethodReplacementService {
         LOGGER.info("Creating a new method from the provided signature.");
 
         MethodDeclaration newMethod = new MethodDeclaration();
+
+        if (signature.modifierPresent() != JavaCodeParser.ModifierPresent.ABSENT) {
+            signature.modifierKeyword().forEach(newMethod::addModifier);
+        }
+
         newMethod.setType(signature.returnType());
         newMethod.setName(signature.methodName());
 
         LOGGER.debug("Set method name to '{}' and return type to '{}'.", signature.methodName(), signature.returnType());
 
-        String[] rawParameters = signature.parameters().split(",");
-        boolean isRawParamsEmpty = Arrays.stream(rawParameters).anyMatch(param -> param.trim().isEmpty());
+        List<String> rawParameters = splitParameters(signature.parameters());
+        boolean isRawParamsEmpty = rawParameters.stream().anyMatch(param -> param.trim().isEmpty());
 
         // If the method signature has parameters,
         // parse them and add them to the new method.
@@ -222,10 +276,16 @@ public class MethodReplacementService {
             for (String rawParam : rawParameters) {
                 String[] parts = rawParam.trim().split(" ");
 
-                if (parts.length == 2) {
-                    Parameter parameter = new Parameter(StaticJavaParser.parseType(parts[0]), parts[1]);
+                if (parts.length >= 2) {
+                    List<String> typeParts = Arrays.stream(Arrays.copyOf(parts, parts.length - 1))
+                            .filter(Objects::nonNull)
+                            .collect(Collectors.toList());
+                    String typeName = String.join(" ", typeParts);
+                    String paramName = parts[parts.length - 1];
+
+                    Parameter parameter = new Parameter(StaticJavaParser.parseType(typeName), paramName);
                     parameters.add(parameter);
-                    LOGGER.debug("Added parameter of type '{}' with name '{}'.", parts[0], parts[1]);
+                    LOGGER.debug("Added parameter of type '{}' with name '{}'.", typeName, paramName);
                 } else {
                     LOGGER.error("Invalid parameter format encountered: '{}'. Throwing exception.", rawParam);
                     throw new IllegalArgumentException("Invalid parameter: " + rawParam);
@@ -270,14 +330,12 @@ public class MethodReplacementService {
      * @return true if the method replacement was successful; false otherwise.
      * @throws FileNotFoundException If any of the files are not found.
      */
-    public boolean replaceOriginalTargetMethod(String checkedFile, String targetFile) throws FileNotFoundException {
-        MethodReplacementService methodReplacement = new MethodReplacementService();
+    public boolean replaceOriginalTargetMethod(String checkedFile, String targetFile, String methodName) throws FileNotFoundException {
         JavaCodeParser extractor = new JavaCodeParser();
 
-        String checkedClass = String.valueOf(extractor.extractFirstClassFromFile(checkedFile));
+        ClassOrInterfaceDeclaration checkedClass = extractor.extractClassByMethodName(checkedFile, methodName);
 
-        boolean wasOriginalMethodReplaced = methodReplacement.replaceMethodInFile(targetFile, checkedClass);
-
+        boolean wasOriginalMethodReplaced = replaceMethodInFile(targetFile, checkedClass.getNameAsString(), checkedClass.toString());
         if (!wasOriginalMethodReplaced) {
             LOGGER.error("Failed to replace the original method in the target file.");
             throw new RuntimeException("Failed to replace original method in file.");

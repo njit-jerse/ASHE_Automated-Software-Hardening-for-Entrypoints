@@ -1,6 +1,6 @@
-package njit.JerSE.services;
+package edu.njit.jerse.services;
 
-import njit.JerSE.api.ApiService;
+import edu.njit.jerse.api.ApiService;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 

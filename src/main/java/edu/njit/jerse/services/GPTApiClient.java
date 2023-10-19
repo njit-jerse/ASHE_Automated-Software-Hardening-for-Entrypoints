@@ -1,13 +1,13 @@
-package njit.JerSE.services;
+package edu.njit.jerse.services;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import njit.JerSE.api.ApiService;
-import njit.JerSE.models.GPTMessage;
-import njit.JerSE.models.GPTModel;
-import njit.JerSE.models.GPTRequest;
-import njit.JerSE.models.GPTResponse;
-import njit.JerSE.utils.Configuration;
+import edu.njit.jerse.api.ApiService;
+import edu.njit.jerse.models.GPTMessage;
+import edu.njit.jerse.models.GPTModel;
+import edu.njit.jerse.models.GPTRequest;
+import edu.njit.jerse.models.GPTResponse;
+import edu.njit.jerse.utils.Configuration;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 

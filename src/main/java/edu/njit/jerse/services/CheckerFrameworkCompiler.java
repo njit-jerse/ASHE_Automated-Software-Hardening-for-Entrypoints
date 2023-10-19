@@ -1,6 +1,6 @@
-package njit.JerSE.services;
+package edu.njit.jerse.services;
 
-import njit.JerSE.utils.Configuration;
+import edu.njit.jerse.utils.Configuration;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -35,10 +35,14 @@ public class CheckerFrameworkCompiler {
         String errorOutput = streamToString(compileProcess.getErrorStream());
 
         String extractedError = extractError(errorOutput);
-        if (!extractedError.isEmpty()) {
-            LOGGER.info("Compilation successful for class: {}", classPath);
+        if (extractedError.isEmpty()) {
+            LOGGER.info("Compilation successful for classPath: {}", classPath);
         } else {
-            LOGGER.warn("Compilation error for class {}: {}", classPath, extractedError);
+            LOGGER.warn(
+                    "Compilation error for classPath {}: "
+                    + System.lineSeparator()
+                    + "{}", classPath, extractedError
+            );
         }
         return extractError(errorOutput);
     }
