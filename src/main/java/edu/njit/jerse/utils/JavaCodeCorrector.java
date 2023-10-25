@@ -39,7 +39,7 @@ public class JavaCodeCorrector {
     /**
      * Utilizes GPT API to attempt to fix errors in the target Java file.
      *
-     * @param targetFile The path to the Java file to be corrected.
+     * @param targetFile   The path to the Java file to be corrected.
      * @param targetMethod The target method to be corrected.
      * @return true if errors were successfully corrected; false otherwise.
      * @throws IOException, FileNotFoundException, IllegalArgumentException, InterruptedException, ExecutionException, TimeoutException
@@ -48,8 +48,6 @@ public class JavaCodeCorrector {
             throws IOException, IllegalArgumentException,
             InterruptedException, ExecutionException, TimeoutException {
 
-        MethodReplacementService methodReplacement = new MethodReplacementService();
-        JavaCodeParser extractor = new JavaCodeParser();
         GPTApiClient gptApiClient = new GPTApiClient();
 
         String errorOutput = checkedFileError(targetFile);
@@ -61,15 +59,15 @@ public class JavaCodeCorrector {
         LOGGER.warn("Errors found in the file:" + System.lineSeparator() + errorOutput);
 
         while (!errorOutput.isEmpty()) {
-            String methodName = extractor.extractMethodName(targetMethod);
-            ClassOrInterfaceDeclaration checkedClass = extractor.extractClassByMethodName(targetFile, methodName);
+            String methodName = JavaCodeParser.extractMethodName(targetMethod);
+            ClassOrInterfaceDeclaration checkedClass = JavaCodeParser.extractClassByMethodName(targetFile, methodName);
 
-            String gptCorrection = fetchCorrectionFromGPT(extractor, gptApiClient, checkedClass, errorOutput);
+            String gptCorrection = fetchCorrectionFromGPT(gptApiClient, checkedClass, errorOutput);
             if (gptCorrection.isEmpty()) {
                 return false;
             }
 
-            boolean wasMethodReplaced = methodReplacement.replaceMethodInFile(targetFile, checkedClass.getNameAsString(), gptCorrection);
+            boolean wasMethodReplaced = MethodReplacementService.replaceMethodInFile(targetFile, checkedClass.getNameAsString(), gptCorrection);
             if (!wasMethodReplaced) {
                 LOGGER.error("Failed to write code to file.");
                 return false;
@@ -91,18 +89,16 @@ public class JavaCodeCorrector {
     /**
      * Fetches a code correction suggestion from the GPT API for a given error in a file compiled with Checker Framework.
      *
-     * @param extractor The parser utility used to extract details from Java code.
      * @param gptApiClient The client for fetching responses from the GPT API.
      * @param checkedClass The class or interface declaration containing the method with errors.
-     * @param errorOutput The error description from the Checker Framework that needs a correction.
+     * @param errorOutput  The error description from the Checker Framework that needs a correction.
      * @return The corrected code block as suggested by the GPT API, or an empty string if not found.
-     *
-     * @throws IOException If there's an error during the API call or parsing.
-     * @throws ExecutionException If the computation threw an exception.
+     * @throws IOException          If there's an error during the API call or parsing.
+     * @throws ExecutionException   If the computation threw an exception.
      * @throws InterruptedException If the current thread was interrupted while waiting.
-     * @throws TimeoutException If the wait timed out.
+     * @throws TimeoutException     If the wait timed out.
      */
-    private String fetchCorrectionFromGPT(JavaCodeParser extractor, GPTApiClient gptApiClient,
+    private String fetchCorrectionFromGPT(GPTApiClient gptApiClient,
                                           ClassOrInterfaceDeclaration checkedClass, String errorOutput)
             throws IOException, ExecutionException, InterruptedException, TimeoutException {
 
@@ -115,7 +111,7 @@ public class JavaCodeCorrector {
                 PROMPT_END;
 
         String gptResponse = gptApiClient.fetchGPTResponse(prompt);
-        String codeBlock = extractor.extractJavaCodeBlockFromResponse(gptResponse);
+        String codeBlock = JavaCodeParser.extractJavaCodeBlockFromResponse(gptResponse);
 
         if (codeBlock.isEmpty()) {
             LOGGER.error("Could not extract code block from GPT response.");
@@ -129,35 +125,37 @@ public class JavaCodeCorrector {
     /**
      * Minimizes a specific method in the target Java file using the Specimin tool.
      *
-     * @param root            Root directory of the target file.
-     * @param targetFile      Path to the target Java file.
-     * @param targetMethod    Method within the target file to minimize.
-     * @return true if the minimization was successful; false otherwise.
+     * @param root         Root directory of the target file.
+     * @param targetFile   Path to the target Java file. The format should adhere to certain specifications.
+     * @param targetMethod Method within the target file to minimize. The format should adhere to certain specifications.
+     * @return The directory where the minimized file is saved.
+     * @throws IOException If there's an error related to file operations during the minimization process.
+     * @throws InterruptedException If the minimization process gets interrupted.
+     * @throws RuntimeException If there's a format error with targetFile or targetMethod, or if the Specimin tool fails to run.
      */
-    public boolean minimizeTargetFile(String root, String targetFile, String targetMethod)
+    public String minimizeTargetFile(String root, String targetFile, String targetMethod)
             throws IOException, InterruptedException {
         if (!isValidTargetFileFormat(targetFile)) {
             LOGGER.error("Formatting error: targetFile does not adhere to the required format.");
-            return false;
+            throw new RuntimeException("Formatting error: targetFile does not adhere to the required format.");
         }
 
         String adjustedTargetMethod = ensureWhitespaceAfterCommas(targetMethod);
         if (!isValidTargetMethodFormat(adjustedTargetMethod)) {
             LOGGER.error("Formatting error: targetMethod does not adhere to the required format.");
-            return false;
+            throw new RuntimeException("Formatting error: targetMethod does not adhere to the required format.");
         }
 
         LOGGER.info("Minimizing source file...");
-        SpeciminTool speciminTool = new SpeciminTool();
-        String minimizedDirectory = speciminTool.runSpeciminTool(root, targetFile, adjustedTargetMethod);
+        String minimizedDirectory = SpeciminTool.runSpeciminTool(root, targetFile, adjustedTargetMethod);
 
         if (minimizedDirectory.isEmpty()) {
             LOGGER.error("Specimin tool failed to run or did not produce an output directory.");
-            return false;
+            throw new RuntimeException("Specimin tool failed to run or did not produce an output directory.");
         }
 
         LOGGER.info("Target file minimized successfully.");
-        return true;
+        return minimizedDirectory;
     }
 
     /**
@@ -167,11 +165,10 @@ public class JavaCodeCorrector {
      * @return A string detailing detected errors, or an empty string if none were found.
      */
     public String checkedFileError(String targetFile) {
-        CheckerFrameworkCompiler checkerFrameworkCompiler = new CheckerFrameworkCompiler();
         String errorOutput;
 
         try {
-            errorOutput = checkerFrameworkCompiler.compileWithCheckerFramework(targetFile);
+            errorOutput = CheckerFrameworkCompiler.compileWithCheckerFramework(targetFile);
             return errorOutput;
         } catch (IOException e) {
             LOGGER.error("An IO error occurred while trying to compile the file: " + targetFile, e);
@@ -198,13 +195,12 @@ public class JavaCodeCorrector {
      * Validates the format of the provided target method.
      * <p>
      * The expected format is: "package.name.ClassName#methodName()"
-     * with or without parameter types depending on the method declaration.
+     * Parameter types must always be provided, though they can be empty if the method has no parameters.
      * For example:
      * <ul>
-     *     <li>"com.example.package.MyClass#myMethod(ParamType1, ParamType2, ...)".</li>
-     *     <li>"com.example.package.MyClass#myMethod()".</li>
+     *     <li>"com.example.package.MyClass#myMethod(ParamType1, ParamType2)".</li>
+     *     <li>"com.example.package.MyClass#myMethod()". If the method has no parameters.</li>
      * </ul>
-     *
      *
      * @param targetMethod the string representing the name of the target method.
      * @return true if the targetMethod adheres to the expected format, false otherwise.

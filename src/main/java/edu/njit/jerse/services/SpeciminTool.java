@@ -23,8 +23,21 @@ import java.util.List;
  *     <li>Delete minimized directories if needed.</li>
  * </ul>
  */
-public class SpeciminTool {
+public final class SpeciminTool {
     private static final Logger LOGGER = LogManager.getLogger(SpeciminTool.class);
+
+    /**
+     * Private constructor to prevent instantiation.
+     * <p>
+     * This class is a utility class and is not meant to be instantiated.
+     * All methods are static and can be accessed without creating an instance.
+     * Making the constructor private ensures that this class cannot be instantiated
+     * from outside the class and helps to prevent misuse.
+     * </p>
+     */
+    private SpeciminTool() {
+        throw new AssertionError("Cannot instantiate SpeciminTool");
+    }
 
     /**
      * Executes and manages the Specimin tool using the specified paths and targets.
@@ -36,7 +49,8 @@ public class SpeciminTool {
      * @throws IOException          If there's an error executing the command or writing the minimized file.
      * @throws InterruptedException If the process execution is interrupted.
      */
-    public String runSpeciminTool(String root, String targetFile, String targetMethod) throws IOException, InterruptedException {
+    public static String runSpeciminTool(String root, String targetFile, String targetMethod)
+            throws IOException, InterruptedException {
         LOGGER.info("Running SpeciminTool...");
 
         Configuration config = Configuration.getInstance();
@@ -58,9 +72,8 @@ public class SpeciminTool {
      * Creates a temporary directory for storing output from the Specimin tool.
      *
      * @return Path of the created temporary directory.
-     * @throws IOException If there's an error creating the directory.
      */
-    private Path createTempDirectory() throws IOException {
+    private static Path createTempDirectory() {
         try {
             Path tempDir = Files.createTempDirectory("speciminTemp");
             tempDir.toFile().deleteOnExit();
@@ -80,7 +93,7 @@ public class SpeciminTool {
      * @param targetMethod    Method to be targeted by the tool.
      * @return Formatted string of arguments.
      */
-    private String formatSpeciminArgs(String outputDirectory, String root, String targetFile, String targetMethod) {
+    private static String formatSpeciminArgs(String outputDirectory, String root, String targetFile, String targetMethod) {
         String adjustedTargetMethod = JavaCodeCorrector.ensureWhitespaceAfterCommas(targetMethod);
         return String.format(
                 "--args=" +
@@ -102,7 +115,7 @@ public class SpeciminTool {
      * @param argsWithOption Formatted arguments string.
      * @return List of commands for execution.
      */
-    private List<String> prepareCommands(String speciminPath, String argsWithOption) {
+    private static List<String> prepareCommands(String speciminPath, String argsWithOption) {
         List<String> commands = new ArrayList<>();
         commands.add(speciminPath + "/gradlew");
         commands.add("run");
@@ -115,7 +128,7 @@ public class SpeciminTool {
      *
      * @param commands List of commands to be logged.
      */
-    private void logCommands(List<String> commands) {
+    private static void logCommands(List<String> commands) {
         LOGGER.info("Executing command:");
         for (String command : commands) {
             LOGGER.info(command);
@@ -131,7 +144,8 @@ public class SpeciminTool {
      * @throws IOException          If there's an error executing the command or reading the output.
      * @throws InterruptedException If the process execution is interrupted.
      */
-    private void startSpeciminProcess(List<String> commands, String speciminPath) throws IOException, InterruptedException {
+    private static void startSpeciminProcess(List<String> commands, String speciminPath)
+            throws IOException, InterruptedException {
         ProcessBuilder builder = new ProcessBuilder(commands);
         builder.redirectErrorStream(true);
         builder.directory(new File(speciminPath));
@@ -153,7 +167,7 @@ public class SpeciminTool {
      * @param process The running Specimin process.
      * @throws IOException If there's an error reading the output.
      */
-    private void logProcessOutput(Process process) throws IOException {
+    private static void logProcessOutput(Process process) throws IOException {
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
             String line;
             while ((line = reader.readLine()) != null) {
@@ -172,7 +186,7 @@ public class SpeciminTool {
      * @throws InterruptedException If the process execution is interrupted.
      * @throws IOException          If there's an error closing the streams.
      */
-    private void finalizeProcess(Process process) throws InterruptedException, IOException {
+    private static void finalizeProcess(Process process) throws InterruptedException, IOException {
         try {
             int exitValue = process.waitFor();
             if (exitValue != 0) {

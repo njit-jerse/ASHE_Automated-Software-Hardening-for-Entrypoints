@@ -25,9 +25,22 @@ import java.util.stream.Collectors;
  * This class provides methods for extracting method signature, method bodies,
  * class declarations, and Java code blocks from a given string or file.
  */
-public class JavaCodeParser {
+public final class JavaCodeParser {
     private static final Logger LOGGER = LogManager.getLogger(MethodReplacementService.class);
-    private final Pattern JavaCodeBlockPattern = Pattern.compile("```java(.*?)```", Pattern.DOTALL);
+    private static final Pattern JavaCodeBlockPattern = Pattern.compile("```java(.*?)```", Pattern.DOTALL);
+
+    /**
+     * Private constructor to prevent instantiation.
+     * <p>
+     * This class is a utility class and is not meant to be instantiated.
+     * All methods are static and can be accessed without creating an instance.
+     * Making the constructor private ensures that this class cannot be instantiated
+     * from outside the class and helps to prevent misuse.
+     * </p>
+     */
+    private JavaCodeParser() {
+        throw new AssertionError("Cannot instantiate JavaCodeParser");
+    }
 
     /**
      * Indicates the presence or absence of a modifier in a method signature.
@@ -88,7 +101,7 @@ public class JavaCodeParser {
      * @param method the method string from which to extract the signature.
      * @return an Optional containing {@link MethodSignature} if found, else empty.
      */
-    public Optional<MethodSignature> extractMethodSignature(String method) {
+    public static Optional<MethodSignature> extractMethodSignature(String method) {
         try {
             CompilationUnit cu = StaticJavaParser.parse(method);
 
@@ -115,7 +128,7 @@ public class JavaCodeParser {
         return Optional.empty();
     }
 
-    private ModifierPresent determineModifierPresence(List<Modifier.Keyword> keywords) {
+    private static ModifierPresent determineModifierPresence(List<Modifier.Keyword> keywords) {
         return keywords.contains(Modifier.Keyword.DEFAULT) ? ModifierPresent.ABSENT : ModifierPresent.PRESENT;
     }
 
@@ -126,7 +139,7 @@ public class JavaCodeParser {
      * @param methodDeclaration the method declaration from which to extract the parameters.
      * @return a formatted string representing the parameters of the method.
      */
-    private String extractParameters(MethodDeclaration methodDeclaration) {
+    private static String extractParameters(MethodDeclaration methodDeclaration) {
         return methodDeclaration.getParameters()
                 .stream()
                 .map(p -> p.getType().asString() + " " + p.getName().asString())
@@ -140,7 +153,7 @@ public class JavaCodeParser {
      * @param methodDeclaration the method declaration to extract the modifier(s) from
      * @return the extracted modifier or {@link Modifier.Keyword#DEFAULT} if none found
      */
-    private List<Modifier.Keyword> extractModifiers(MethodDeclaration methodDeclaration) {
+    private static List<Modifier.Keyword> extractModifiers(MethodDeclaration methodDeclaration) {
         List<Modifier.Keyword> keywords = methodDeclaration.getModifiers()
                 .stream()
                 .map(Modifier::getKeyword)
@@ -155,11 +168,11 @@ public class JavaCodeParser {
      * Extracts the method name from a provided target method string.
      * <p>
      * The expected format is: "package.name.ClassName#methodName()"
-     * with or without parameter types depending on the method declaration.
+     * Parameter types must always be provided, though they can be empty if the method has no parameters.
      * For example:
      * <ul>
-     *     <li>"com.example.package.MyClass#myMethod(ParamType1, ParamType2, ...)".</li>
-     *     <li>"com.example.package.MyClass#myMethod()".</li>
+     *     <li>"com.example.package.MyClass#myMethod(ParamType1, ParamType2)".</li>
+     *     <li>"com.example.package.MyClass#myMethod()". If the method has no parameters.</li>
      * </ul>
      * <p>
      * If the target method string does not match the expected format,
@@ -169,11 +182,16 @@ public class JavaCodeParser {
      * @return the extracted method name from the provided target method string.
      * @throws IllegalArgumentException if the targetMethod format is invalid.
      */
-    public String extractMethodName(String targetMethod) {
+    public static String extractMethodName(String targetMethod) {
         Pattern pattern = Pattern.compile("#(.*?)\\(");
         Matcher matcher = pattern.matcher(targetMethod);
 
         if (matcher.find()) {
+            // Suppressed warning: Based on Matcher's behavior, group(1) won't be null if find() succeeds.
+            // Explanation: In the context of the regex pattern "#(.*?)\\(", `group(0)` would represent the entire
+            // matched substring starting from `#` and ending just before the first open parenthesis `(`.
+            // So, for an input like "com.example.package.MyClass#myMethod(ParamType1, ParamType2)", `group(0)`
+            // would return `#myMethod(`, while `group(1)` captures just the method name, returning `myMethod`.
             @SuppressWarnings("nullness")
             String methodName = matcher.group(1);
             if (methodName != null) {
@@ -190,7 +208,7 @@ public class JavaCodeParser {
      * @param method the entire Java method as a string
      * @return the body of the method as a string, or an empty string if not found
      */
-    public String extractMethodBody(String method) {
+    public static String extractMethodBody(String method) {
         try {
             CompilationUnit cu = StaticJavaParser.parse(method);
             MethodDeclaration methodDeclaration = cu.findFirst(MethodDeclaration.class).orElse(null);
@@ -215,7 +233,8 @@ public class JavaCodeParser {
      * @return the name of the class or interface containing the specified method
      * @throws FileNotFoundException If the file cannot be read or if no such method exists
      */
-    public ClassOrInterfaceDeclaration extractClassByMethodName(String filePath, String methodName) throws FileNotFoundException {
+    public static ClassOrInterfaceDeclaration extractClassByMethodName(String filePath, String methodName)
+            throws FileNotFoundException {
         try (FileInputStream fis = new FileInputStream(filePath)) {
             CompilationUnit cu = StaticJavaParser.parse(fis);
             List<ClassOrInterfaceDeclaration> classes = cu.findAll(ClassOrInterfaceDeclaration.class);
@@ -251,7 +270,7 @@ public class JavaCodeParser {
      * @param response the response string potentially containing a Java code block
      * @return the Java code block without enclosing tags, or empty string if not found
      */
-    public String extractJavaCodeBlockFromResponse(String response) {
+    public static String extractJavaCodeBlockFromResponse(String response) {
         Matcher matcher = JavaCodeBlockPattern.matcher(response);
 
         if (matcher.find()) {

@@ -1,7 +1,6 @@
 package edu.njit.jerse;
 
 import edu.njit.jerse.services.MethodReplacementService;
-import edu.njit.jerse.services.SpeciminTool;
 import edu.njit.jerse.utils.JavaCodeCorrector;
 import edu.njit.jerse.utils.JavaCodeParser;
 import org.apache.logging.log4j.LogManager;
@@ -10,7 +9,8 @@ import org.apache.logging.log4j.Logger;
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
-
+// TODO: Throughout the project, logs must be updated to fix any misleading or duplicate messages.
+// TODO: Consider eliminating Optional usage in favor of null checks where possible.
 /**
  * The {@code ASHE} class orchestrates the correction, minimization, and method
  * replacement processes of Java files, leveraging the Specimin tool, Checker
@@ -68,39 +68,25 @@ public class ASHE {
      *                     Required format: "[path]/[to]/[package]/ClassName.java"
      *                     Example: "com/example/package/MyClass.java"
      * @param targetMethod the target method in the Java file.
-     *                     Required format: "package.name.ClassName#methodName()"
-     *                     with or without parameter types depending on the method declaration.
+     *                     Required format: "package.name.ClassName#methodName(ParamType1, ParamType2, ...)"
+     *                     Parameter types must always be provided, though they can be empty if the method has no parameters.
      *                     For example:
      *                     <ul>
-     *                         <li>"com.example.package.MyClass#myMethod(ParamType1, ParamType2, ...)".</li>
-     *                         <li>"com.example.package.MyClass#myMethod()".</li>
+     *                         <li>"com.example.package.MyClass#myMethod(ParamType1, ParamType2)".</li>
+     *                         <li>"com.example.package.MyClass#myMethod()". If the method has no parameters.</li>
      *                     </ul>
      * @throws IOException          if an I/O error occurs during file operations
      * @throws ExecutionException   if an exception was thrown during task execution
      * @throws InterruptedException if the current thread was interrupted while waiting
      * @throws TimeoutException     if a timeout was encountered during task execution
      */
-    public void run(String root, String targetFile, String targetMethod) throws IOException, ExecutionException, InterruptedException, TimeoutException {
+    public void run(String root, String targetFile, String targetMethod)
+            throws IOException, ExecutionException, InterruptedException, TimeoutException {
         LOGGER.info("Running ASHE...");
 
         JavaCodeCorrector corrector = new JavaCodeCorrector();
-        JavaCodeParser extractor = new JavaCodeParser();
-        SpeciminTool speciminTool = new SpeciminTool();
-        MethodReplacementService methodReplacement = new MethodReplacementService();
 
-        boolean didTargetFileMinimize = corrector.minimizeTargetFile(root, targetFile, targetMethod);
-        if (!didTargetFileMinimize) {
-            LOGGER.error("Target file failed to minimize.");
-            throw new RuntimeException("Target file failed to minimize.");
-        }
-
-        String speciminTempDir = speciminTool.runSpeciminTool(root, targetFile, targetMethod);
-
-        if (speciminTempDir.isEmpty()) {
-            LOGGER.error("Error obtaining Specimin directory.");
-            throw new RuntimeException("Error obtaining Specimin directory.");
-        }
-
+        String speciminTempDir = corrector.minimizeTargetFile(root, targetFile, targetMethod);
         final String sourceFilePath = speciminTempDir + "/" + targetFile;
 
         boolean errorsReplacedInTargetFile = corrector.fixTargetFileErrorsWithGPT(sourceFilePath, targetMethod);
@@ -116,9 +102,9 @@ public class ASHE {
         }
         LOGGER.info("Errors replaced with GPT response successfully.");
 
-        String methodName = extractor.extractMethodName(targetMethod);
+        String methodName = JavaCodeParser.extractMethodName(targetMethod);
         String originalFilePath = root + "/" + targetFile;
-        boolean isOriginalMethodReplaced = methodReplacement.replaceOriginalTargetMethod(sourceFilePath, originalFilePath, methodName);
+        boolean isOriginalMethodReplaced = MethodReplacementService.replaceOriginalTargetMethod(sourceFilePath, originalFilePath, methodName);
 
         if (!isOriginalMethodReplaced) {
             LOGGER.error("Original method was not replaced.");
@@ -151,7 +137,8 @@ public class ASHE {
      * @throws InterruptedException if the current thread was interrupted while waiting
      * @throws TimeoutException     if a timeout was encountered during task execution
      */
-    public static void main(String[] args) throws IOException, ExecutionException, InterruptedException, TimeoutException {
+    public static void main(String[] args)
+            throws IOException, ExecutionException, InterruptedException, TimeoutException {
         if (args.length != 3) {
             LOGGER.error("Invalid number of arguments provided.");
             throw new IllegalArgumentException("Invalid number of arguments provided.");

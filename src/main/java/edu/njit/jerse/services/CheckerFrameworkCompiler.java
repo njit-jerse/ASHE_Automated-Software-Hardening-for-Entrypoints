@@ -13,9 +13,21 @@ import java.io.*;
  * allowing for early error detection in programs. This service utilizes the framework to
  * compile Java classes and detect potential type errors.
  */
-public class CheckerFrameworkCompiler {
+public final class CheckerFrameworkCompiler {
     private static final Logger LOGGER = LogManager.getLogger(CheckerFrameworkCompiler.class);
 
+    /**
+     * Private constructor to prevent instantiation.
+     * <p>
+     * This class is not meant to be instantiated.
+     * All methods are static and can be accessed without creating an instance.
+     * Making the constructor private ensures that this class cannot be instantiated
+     * from outside the class and helps to prevent misuse.
+     * </p>
+     */
+    private CheckerFrameworkCompiler() {
+        throw new AssertionError("Cannot instantiate CheckerFrameworkCompiler");
+    }
 
     /**
      * Compiles a Java class using the Checker Framework.
@@ -24,7 +36,7 @@ public class CheckerFrameworkCompiler {
      * @return a string containing any errors produced during the compilation
      * @throws IOException If there's an error in executing the compilation command or reading its output
      */
-    public String compileWithCheckerFramework(String classPath) throws IOException {
+    public static String compileWithCheckerFramework(String classPath) throws IOException {
         LOGGER.info("Attempting to compile Java class using Checker Framework: {}", classPath);
 
         // Compilation command with Checker Framework
@@ -77,7 +89,7 @@ public class CheckerFrameworkCompiler {
      * @param errorMessage the error string to extract messages from
      * @return the extracted error message, or an empty string if the "error:" pattern isn't found
      */
-    private String extractError(String errorMessage) {
+    private static String extractError(String errorMessage) {
         LOGGER.debug("Attempting to extract error from error message.");
 
         /**
@@ -103,7 +115,7 @@ public class CheckerFrameworkCompiler {
      * @param checkedClassPath the path to the Java class to be compiled
      * @return an array of strings representing the compilation command
      */
-    private String[] compileCheckedClassCommand(String checkedClassPath) {
+    private static String[] compileCheckedClassCommand(String checkedClassPath) {
         LOGGER.info("Constructing compilation command for Java class: {}", checkedClassPath);
 
         Configuration config = Configuration.getInstance();

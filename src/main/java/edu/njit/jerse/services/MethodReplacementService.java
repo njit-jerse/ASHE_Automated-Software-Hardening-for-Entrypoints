@@ -7,6 +7,8 @@ import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.Parameter;
 import edu.njit.jerse.utils.JavaCodeParser;
+import edu.njit.jerse.utils.JavaCodeParser.MethodSignature;
+import edu.njit.jerse.utils.JavaCodeParser.ModifierPresent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -25,23 +27,35 @@ import java.util.stream.Collectors;
  * This service uses the JavaParser library to analyze and manipulate Java source files,
  * facilitating the replacement of methods with new implementations provided as input.
  */
-public class MethodReplacementService {
+public final class MethodReplacementService {
     private static final Logger LOGGER = LogManager.getLogger(MethodReplacementService.class);
+
+    /**
+     * Private constructor to prevent instantiation.
+     * <p>
+     * This class is not meant to be instantiated.
+     * All methods are static and can be accessed without creating an instance.
+     * Making the constructor private ensures that this class cannot be instantiated
+     * from outside the class and helps to prevent misuse.
+     * </p>
+     */
+    private MethodReplacementService() {
+        throw new AssertionError("Cannot instantiate MethodReplacementService");
+    }
 
     /**
      * Replaces an existing Java method in the specified file with a new, updated method.
      *
-     * @param filePath      the path to the Java file containing the method to be replaced.
-     * @param newMethodCode the new method code to replace the existing method.
+     * @param absoluteFilePath the absolute path to the Java file containing the method to be replaced.
+     * @param newMethodCode    the new method code to replace the existing method.
      * @return {@code true} if the replacement operation was successful; {@code false} otherwise.
      */
-    public boolean replaceMethodInFile(String filePath, String className, String newMethodCode) {
-        LOGGER.info("Attempting to replace method in file: {}", filePath);
+    public static boolean replaceMethodInFile(String absoluteFilePath, String className, String newMethodCode) {
+        LOGGER.info("Attempting to replace method in file: {}", absoluteFilePath);
 
-        Path path = Paths.get(filePath);
-        JavaCodeParser javaCodeParser = new JavaCodeParser();
+        Path path = Paths.get(absoluteFilePath);
 
-        Optional<JavaCodeParser.MethodSignature> methodSignatureOpt = javaCodeParser.extractMethodSignature(newMethodCode);
+        Optional<MethodSignature> methodSignatureOpt = JavaCodeParser.extractMethodSignature(newMethodCode);
         if (methodSignatureOpt.isEmpty() || !isValidMethodSignature(methodSignatureOpt.get())) {
             LOGGER.error("Could not parse the provided method.");
             return false;
@@ -62,19 +76,19 @@ public class MethodReplacementService {
             return false;
         }
 
-        MethodDeclaration newMethod = createNewMethodFromSignature(methodSignatureOpt.get(), javaCodeParser, newMethodCode);
+        MethodDeclaration newMethod = createNewMethodFromSignature(methodSignatureOpt.get(), newMethodCode);
 
         boolean wasMethodReplaced = replaceMethodInClassDeclaration(classOpt.get(), newMethod, methodSignatureOpt.get());
         if (!wasMethodReplaced) {
-            LOGGER.error("No matching method found to replace in file: {}", filePath);
+            LOGGER.error("No matching method found to replace in file: {}", absoluteFilePath);
             return false;
         }
 
         boolean didWriteCUToFile = writeCompilationUnitToFile(path, cu);
         if (didWriteCUToFile) {
-            LOGGER.info("Method replacement succeeded for file: {}", filePath);
+            LOGGER.info("Method replacement succeeded for file: {}", absoluteFilePath);
         } else {
-            LOGGER.error("Method replacement failed for file: {}", filePath);
+            LOGGER.error("Method replacement failed for file: {}", absoluteFilePath);
         }
         return didWriteCUToFile;
     }
@@ -86,12 +100,8 @@ public class MethodReplacementService {
      * @param newMethod       The new method declaration that will replace the existing method if a match is found.
      * @param methodSignature The signature of the method to be replaced. Replacement is done based on this signature.
      * @return True if a method with the provided signature was found and replaced, otherwise false.
-     * <p>
-     * Note: If multiple methods have the same signature, only the first encountered will be replaced.
-     * TODO: Add support for replacing a specific method if multiple methods have the same signature.
-     * TODO: I.E. take into account method overriding.
      */
-    private boolean replaceMethodInClassDeclaration(ClassOrInterfaceDeclaration classDecl, MethodDeclaration newMethod, JavaCodeParser.MethodSignature methodSignature) {
+    private static boolean replaceMethodInClassDeclaration(ClassOrInterfaceDeclaration classDecl, MethodDeclaration newMethod, MethodSignature methodSignature) {
         for (MethodDeclaration method : classDecl.getMethods()) {
             // If method has the same signature as the one we want to replace, replace it
             if (doesMethodSignatureMatch(method, methodSignature)) {
@@ -112,9 +122,6 @@ public class MethodReplacementService {
      * 3. Type of parameters (order matters).
      * 4. Return type - this deviates slightly from the JLS where only parameter types
      *                  are considered for "override-equivalent".
-     * <p>
-     * Parameter names and parameter default values/annotations are not considered during
-     * the match. The handling of type variables needs to be verified.
      *
      * @param method          The method declaration to check against the target signature.
      * @param targetSignature The target method signature to which the provided method is compared.
@@ -123,7 +130,9 @@ public class MethodReplacementService {
      * Example Usage:
      * doesMethodSignatureMatch(someMethodDecl, new MethodSignature("methodName", "paramType1, paramType2", "returnType"));
      */
-    private boolean doesMethodSignatureMatch(MethodDeclaration method, JavaCodeParser.MethodSignature targetSignature) {
+    // TODO: Parameter names and parameter default values/annotations are not considered during
+    // TODO: the match. The handling of type variables needs to be checked.
+    private static boolean doesMethodSignatureMatch(MethodDeclaration method, MethodSignature targetSignature) {
         // Check if the method name matches
         if (!method.getNameAsString().equals(targetSignature.methodName())) {
             return false;
@@ -200,7 +209,7 @@ public class MethodReplacementService {
      * @param signature the method signature to be checked
      * @return {@code true} if the method signature is complete and a valid Java method signature; {@code false} otherwise.
      */
-    private boolean isValidMethodSignature(JavaCodeParser.MethodSignature signature) {
+    private static boolean isValidMethodSignature(MethodSignature signature) {
         boolean isValidSig =
                 signature.returnType() != null &&
                         signature.methodName() != null &&
@@ -226,9 +235,9 @@ public class MethodReplacementService {
      * @param className The name of the class or interface whose declaration is
      *                  to be fetched.
      * @return An {@code Optional} containing the declaration of the target
-     *         class or interface if found; otherwise, an empty {@code Optional}.
+     * class or interface if found; otherwise, an empty {@code Optional}.
      */
-    private Optional<ClassOrInterfaceDeclaration> getClassDeclaration(CompilationUnit cu, String className) {
+    private static Optional<ClassOrInterfaceDeclaration> getClassDeclaration(CompilationUnit cu, String className) {
         List<ClassOrInterfaceDeclaration> classes = cu.findAll(ClassOrInterfaceDeclaration.class);
 
         for (ClassOrInterfaceDeclaration classOrInterface : classes) {
@@ -246,16 +255,15 @@ public class MethodReplacementService {
      * Creates a new {@link MethodDeclaration} object from the provided method signature.
      *
      * @param signature     the signature of the method to be created
-     * @param parser        the Java code parser
      * @param newMethodCode the new method code
      * @return the newly constructed {@link MethodDeclaration} object
      */
-    private MethodDeclaration createNewMethodFromSignature(JavaCodeParser.MethodSignature signature, JavaCodeParser parser, String newMethodCode) {
+    private static MethodDeclaration createNewMethodFromSignature(MethodSignature signature, String newMethodCode) {
         LOGGER.info("Creating a new method from the provided signature.");
 
         MethodDeclaration newMethod = new MethodDeclaration();
 
-        if (signature.modifierPresent() != JavaCodeParser.ModifierPresent.ABSENT) {
+        if (signature.modifierPresent() != ModifierPresent.ABSENT) {
             signature.modifierKeyword().forEach(newMethod::addModifier);
         }
 
@@ -297,7 +305,7 @@ public class MethodReplacementService {
             LOGGER.debug("No parameters provided for the method.");
         }
 
-        newMethod.setBody(StaticJavaParser.parseBlock(parser.extractMethodBody(newMethodCode)));
+        newMethod.setBody(StaticJavaParser.parseBlock(JavaCodeParser.extractMethodBody(newMethodCode)));
         LOGGER.debug("Set method body.");
 
         return newMethod;
@@ -310,7 +318,7 @@ public class MethodReplacementService {
      * @param cu   the updated compilation unit
      * @return {@code true} if the write operation was successful; {@code false} otherwise.
      */
-    private boolean writeCompilationUnitToFile(Path path, CompilationUnit cu) {
+    private static boolean writeCompilationUnitToFile(Path path, CompilationUnit cu) {
         try {
             LOGGER.debug("Writing updated compilation unit to file...");
             Files.write(path, cu.toString().getBytes(), StandardOpenOption.TRUNCATE_EXISTING);
@@ -330,10 +338,8 @@ public class MethodReplacementService {
      * @return true if the method replacement was successful; false otherwise.
      * @throws FileNotFoundException If any of the files are not found.
      */
-    public boolean replaceOriginalTargetMethod(String checkedFile, String targetFile, String methodName) throws FileNotFoundException {
-        JavaCodeParser extractor = new JavaCodeParser();
-
-        ClassOrInterfaceDeclaration checkedClass = extractor.extractClassByMethodName(checkedFile, methodName);
+    public static boolean replaceOriginalTargetMethod(String checkedFile, String targetFile, String methodName) throws FileNotFoundException {
+        ClassOrInterfaceDeclaration checkedClass = JavaCodeParser.extractClassByMethodName(checkedFile, methodName);
 
         boolean wasOriginalMethodReplaced = replaceMethodInFile(targetFile, checkedClass.getNameAsString(), checkedClass.toString());
         if (!wasOriginalMethodReplaced) {
