@@ -5,10 +5,7 @@ build/
 !**/src/test/**/build/
 
 ### IntelliJ IDEA ###
-.idea/modules.xml
-.idea/jarRepositories.xml
-.idea/compiler.xml
-.idea/libraries/
+.idea/*
 *.iws
 *.iml
 *.ipr
@@ -48,3 +45,8 @@ bin/
 logs/*
 ### Keep an empty directory placeholder ###
 !logs/.gitkeep
+
+### Specimin Folder  where files are minimized ###
+specimin/*
+### Keep an empty directory placeholder ###
+specimin/.gitkeep
