@@ -109,6 +109,9 @@ replacing the `specimin.tool.path` placeholder.
 `class.fully.qualified.Name#methodName(Param1Type, Param2Type, ...)`.
     - Example: `com.example.Example#foo()`
 
+### Logging
+> 🟡 **Note:** All logs are written to the `logs` directory in the project root directory.
+
 <br/>
 
 ---
