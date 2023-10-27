@@ -5,11 +5,19 @@
 
 ASHE aims to automatically enhance software robustness against unforeseen or harmful inputs. By focusing on entrypoint 
 methods—those callable from outside the program—ASHE checks for potential undesired behaviors, such as array overflows 
-or null-pointer dereferences. When such vulnerabilities are detected, ASHE auto-synthesizes patches to harden the 
-software. Each patch undergoes a stringent verification process, ensuring the enhanced software stands robust against 
-malicious or unexpected inputs.
+or null-pointer dereferences. When ASHE detects such a vulnerability, it auto-synthesizes patches to harden the 
+software.
+
+ASHE first employs a minimization tool to reduce a program, ensuring it only encompasses a 
+single method and that method's dependencies. Subsequently, it utilizes a verification tool, like a pluggable 
+typechecker, to pinpoint code that may be susceptible to unexpected inputs. Concluding this process, a large language 
+model (LLM) is used to rewrite the code, ensuring its compliance with the verification tool. Through this 
+procedure, ASHE generates provably-hardened code.
 
 ## Overview
+
+ASHE has three main components: a verification minimizer, a set of verification tools, and a patch generator.  
+In our prototype, those three tools are:
 
 - **[Specimin](https://github.com/kelloggm/specimin)**: A tool that, given a Java program P and a set of methods M, 
 produces a minimized, compilable version of P preserving the signatures of methods, structure of classes, and other 
@@ -43,22 +51,42 @@ directory.
 
 ## Usage
 
-> 🔴 **Important Note:**
-> Several updates are in progress to streamline the setup and usage of ASHE. Always refer to the latest version of 
-this README for up-to-date instructions.
+> 🔴 **Important Note:** ASHE is still under active development, so expect frequent changes to its setup and usage. 
+If you'd like to use ASHE, we suggest contacting us first.
 
-> 🔴 **Upcoming changes:**
-> - We aim to integrate the maven repository version for Specimin, eliminating the need for a specific directory.
-> - Plans are in place to remove the dependencies on resources and libs directories in the compilation and execution 
-commands by moving them to the gradle build file.
+### Initial Setup
+
+#### Download ASHE
+- Download [ASHE](https://github.com/jonathan-m-phillips/ASHE_Automated-Software-Hardening-for-Entrypoints) from 
+our GitHub to your local machine.
+
+#### Creating a Configuration File
+- **Using `example.properties` as a Template:**
+    - Rename the `example.properties` file in the `resources` directory to `config.properties`.
+    - > 🔴 **Important Note:** Ensure this file is ignored by git to prevent any sensitive information from being 
+    committed. The `config.properties` file will contain your OpenAI API key. If any sensitive information is 
+    committed, immediately revoke your API key and generate a new one.
+
+#### Downloading Specimin
+- Navigate to [Specimin](https://github.com/kelloggm/specimin) on GitHub and download the project to your local
+machine.
+- Add the absolute path you downloaded Specimin to, to the `config.properties` file in the `resources` directory, 
+replacing the `specimin.tool.path` placeholder.
+
+#### Creating the ChatGPT API Key
+1. **Create an OpenAI account:**
+    - Create an account on the [OpenAI](https://platform.openai.com) website.
+2. **Create an OpenAI API key:** 
+    - Create an [API](https://platform.openai.com/account/api-keys) key for the ChatGPT API under View API Keys.
+3. **Add the API key to `config.properties`:** 
+    - Copy the API key from OpenAI and paste it into the `config.properties` file in the `resources` directory,
+   replacing the `llm.api.key` placeholder.
 
 ### Compiling ASHE
 
-1. **Download the project:**
-    - Obtain the ASHE project files and download them to your local machine.
-2. **Navigate to Project Directory:**
+1. **Navigate to project directory:**
     - Open your terminal and navigate to the project root directory using the `cd` command.
-3. **Compile ASHE:**
+2. **Compile ASHE:**
     - Execute the following command:
       ```bash
       javac -cp ".:../resources:../../../libs/*" edu/njit/jerse/*.java
@@ -94,19 +122,14 @@ fully function for complex projects.
 additional errors.
 - ASHE is currently limited to only utilizing ChatGPT as the LLM. While ChatGPT has shown promising results, the intent 
 is to expand the LLM options to include other models - allowing users to select the model that best fits their needs.
-- The user will need to create their own OpenAI API key to utilize ChatGPT.
-  > 🔴 **Important Note:** There will be a generic configuration file provided in the repository as an example of how 
-to set up the ChatGPT API and the prompt settings for the LLM.
+- The user will need to create their own OpenAI API key to utilize ChatGPT, as stated in [Usage](#usage).
 
 ## Contributing
 
-If you have suggestions, bug reports, or contributions to the project, please open an issue or submit a pull request 
-and the ASHE team will attempt to respond in a timely manner.
+If you have suggestions, bug reports, or contributions to the project, please open an issue or submit a pull request.
 
 ## License
 
 This project is licensed under the MIT License. Refer to the LICENSE file for more details.
 
-## Contact
-
-For more information, please reach out to Jonathan Phillips at [jmp274@njit.edu](mailto:jmp274@njit.edu).
+<br>
