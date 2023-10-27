@@ -11,6 +11,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 // TODO: Throughout the project, logs must be updated to fix any misleading or duplicate messages.
 // TODO: Consider eliminating Optional usage in favor of null checks where possible.
+// TODO: Fix the project, so we do not need to point to resources and libs in the commands.
+// TODO: Add Java 21 to the project and Github CI
 /**
  * The {@code ASHE} class orchestrates the correction, minimization, and method
  * replacement processes of Java files, leveraging the Specimin tool, Checker
