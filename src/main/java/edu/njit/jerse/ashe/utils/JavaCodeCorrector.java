@@ -1,11 +1,12 @@
-package edu.njit.jerse.utils;
+package edu.njit.jerse.ashe.utils;
 
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
-import edu.njit.jerse.ASHE;
-import edu.njit.jerse.services.CheckerFrameworkCompiler;
-import edu.njit.jerse.services.GPTApiClient;
-import edu.njit.jerse.services.MethodReplacementService;
-import edu.njit.jerse.services.SpeciminTool;
+import edu.njit.jerse.ashe.ASHE;
+import edu.njit.jerse.ashe.services.CheckerFrameworkCompiler;
+import edu.njit.jerse.ashe.services.GPTApiClient;
+import edu.njit.jerse.ashe.services.MethodReplacementService;
+import edu.njit.jerse.ashe.services.SpeciminTool;
+import edu.njit.jerse.config.Configuration;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -136,14 +137,14 @@ public class JavaCodeCorrector {
     public String minimizeTargetFile(String root, String targetFile, String targetMethod)
             throws IOException, InterruptedException {
         if (!isValidTargetFileFormat(targetFile)) {
-            LOGGER.error("Formatting error: targetFile does not adhere to the required format.");
-            throw new RuntimeException("Formatting error: targetFile does not adhere to the required format.");
+            LOGGER.error("Formatting error: targetFile does not adhere to the required format. {}", targetFile);
+            throw new RuntimeException("Formatting error: targetFile does not adhere to the required format. " + targetFile);
         }
 
         String adjustedTargetMethod = ensureWhitespaceAfterCommas(targetMethod);
         if (!isValidTargetMethodFormat(adjustedTargetMethod)) {
-            LOGGER.error("Formatting error: targetMethod does not adhere to the required format.");
-            throw new RuntimeException("Formatting error: targetMethod does not adhere to the required format.");
+            LOGGER.error("Formatting error: targetMethod does not adhere to the required format. {}", targetMethod);
+            throw new RuntimeException("Formatting error: targetMethod does not adhere to the required format. " + targetMethod);
         }
 
         LOGGER.info("Minimizing source file...");
