@@ -1,13 +1,13 @@
-package edu.njit.jerse.services;
+package edu.njit.jerse.ashe.services;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import edu.njit.jerse.api.ApiService;
-import edu.njit.jerse.models.GPTMessage;
-import edu.njit.jerse.models.GPTModel;
-import edu.njit.jerse.models.GPTRequest;
-import edu.njit.jerse.models.GPTResponse;
-import edu.njit.jerse.utils.Configuration;
+import edu.njit.jerse.ashe.api.ApiService;
+import edu.njit.jerse.ashe.models.GPTMessage;
+import edu.njit.jerse.ashe.models.GPTModel;
+import edu.njit.jerse.ashe.models.GPTRequest;
+import edu.njit.jerse.ashe.models.GPTResponse;
+import edu.njit.jerse.config.Configuration;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 

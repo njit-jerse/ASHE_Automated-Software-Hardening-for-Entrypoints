@@ -1,4 +1,4 @@
-package edu.njit.jerse.utils;
+package edu.njit.jerse.ashe.utils;
 
 import com.github.javaparser.ParseProblemException;
 import com.github.javaparser.StaticJavaParser;
@@ -6,7 +6,7 @@ import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.Modifier;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
-import edu.njit.jerse.services.MethodReplacementService;
+import edu.njit.jerse.ashe.services.MethodReplacementService;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 

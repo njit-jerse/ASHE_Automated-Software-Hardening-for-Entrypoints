@@ -1,4 +1,4 @@
-package edu.njit.jerse.utils;
+package edu.njit.jerse.config;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
