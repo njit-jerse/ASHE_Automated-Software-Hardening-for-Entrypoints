@@ -97,7 +97,7 @@ replacing the `specimin.tool.path` placeholder.
 1. **Execute ASHE:**
     - After successful compilation, run ASHE using the following command:
       ```bash
-      java -cp ".:../../../libs/*:../resources" edu.njit.jerse.ASHE "/root/path/to/your/targeted/project" "path/to/targetFile/Example.java" "com.example.Example#foo()"
+      java -cp ".:../../../libs/*:../resources" edu.njit.jerse.ashe.ASHE "/root/path/to/your/targeted/project" "path/to/targetFile/Example.java" "com.example.Example#foo()"
       ```
 
 **Command Arguments:**

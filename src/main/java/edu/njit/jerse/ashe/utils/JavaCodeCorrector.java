@@ -1,11 +1,12 @@
-package edu.njit.jerse.utils;
+package edu.njit.jerse.ashe.utils;
 
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
-import edu.njit.jerse.ASHE;
-import edu.njit.jerse.services.CheckerFrameworkCompiler;
-import edu.njit.jerse.services.GPTApiClient;
-import edu.njit.jerse.services.MethodReplacementService;
-import edu.njit.jerse.services.SpeciminTool;
+import edu.njit.jerse.ashe.ASHE;
+import edu.njit.jerse.ashe.services.CheckerFrameworkCompiler;
+import edu.njit.jerse.ashe.services.GPTApiClient;
+import edu.njit.jerse.ashe.services.MethodReplacementService;
+import edu.njit.jerse.ashe.services.SpeciminTool;
+import edu.njit.jerse.config.Configuration;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 

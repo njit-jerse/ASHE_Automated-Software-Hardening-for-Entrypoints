@@ -1,4 +1,4 @@
-package edu.njit.jerse.services;
+package edu.njit.jerse.ashe.services;
 
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
@@ -6,9 +6,9 @@ import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.Parameter;
-import edu.njit.jerse.utils.JavaCodeParser;
-import edu.njit.jerse.utils.JavaCodeParser.MethodSignature;
-import edu.njit.jerse.utils.JavaCodeParser.ModifierPresent;
+import edu.njit.jerse.ashe.utils.JavaCodeParser;
+import edu.njit.jerse.ashe.utils.JavaCodeParser.MethodSignature;
+import edu.njit.jerse.ashe.utils.JavaCodeParser.ModifierPresent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 

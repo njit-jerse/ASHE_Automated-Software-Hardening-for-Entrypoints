@@ -1,8 +1,8 @@
-package edu.njit.jerse;
+package edu.njit.jerse.ashe;
 
-import edu.njit.jerse.services.MethodReplacementService;
-import edu.njit.jerse.utils.JavaCodeCorrector;
-import edu.njit.jerse.utils.JavaCodeParser;
+import edu.njit.jerse.ashe.services.MethodReplacementService;
+import edu.njit.jerse.ashe.utils.JavaCodeCorrector;
+import edu.njit.jerse.ashe.utils.JavaCodeParser;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
