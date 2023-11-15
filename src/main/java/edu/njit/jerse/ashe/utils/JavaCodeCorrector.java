@@ -137,14 +137,14 @@ public class JavaCodeCorrector {
     public String minimizeTargetFile(String root, String targetFile, String targetMethod)
             throws IOException, InterruptedException {
         if (!isValidTargetFileFormat(targetFile)) {
-            LOGGER.error("Formatting error: targetFile does not adhere to the required format. {}", targetFile);
-            throw new RuntimeException("Formatting error: targetFile does not adhere to the required format. " + targetFile);
+            LOGGER.error("Formatting error: targetFile does not adhere to the required format.");
+            throw new RuntimeException("Formatting error: targetFile does not adhere to the required format.");
         }
 
         String adjustedTargetMethod = ensureWhitespaceAfterCommas(targetMethod);
         if (!isValidTargetMethodFormat(adjustedTargetMethod)) {
-            LOGGER.error("Formatting error: targetMethod does not adhere to the required format. {}", targetMethod);
-            throw new RuntimeException("Formatting error: targetMethod does not adhere to the required format. " + targetMethod);
+            LOGGER.error("Formatting error: targetMethod does not adhere to the required format.");
+            throw new RuntimeException("Formatting error: targetMethod does not adhere to the required format.");
         }
 
         LOGGER.info("Minimizing source file...");

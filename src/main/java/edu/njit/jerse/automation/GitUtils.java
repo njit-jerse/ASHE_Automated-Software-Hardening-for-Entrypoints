@@ -9,27 +9,22 @@ import java.io.File;
 import java.io.IOException;
 
 /**
- * The {@code GitUtils} class encapsulates operations for interacting with Git repositories
- * using the JGit library. It serves as a utility class to abstract common Git operations
- * like cloning a repository or fetching updates from a remote repository.
- * <p>
- * This class provides a streamlined interface for initiating Git processes programmatically,
- * allowing for the cloning of specific branches and updating local copies of repositories
- * with changes from their remote sources. It is designed to integrate with applications
- * that require direct manipulation of Git repositories without direct command line interaction.
+ * The {@code GitUtils} class contains static methods for interacting with Git repositories
+ * using the JGit library.
  */
 public class GitUtils {
     private static final Logger LOGGER = LogManager.getLogger(GitUtils.class);
 
     /**
      * Clones a Git repository from a specified remote URL into a local directory.
-     * The method allows specifying a particular branch to clone.
+     * The method allows specifying a particular branch to clone. The repository URL can contain
+     * '.git' at the end, but it is not required.
      *
-     * @param repoUrl   The URL of the remote repository to clone.
-     * @param branch    The branch of the repository to clone. If null, the default branch is cloned.
-     * @param directory The directory where the repository will be cloned into. It should not exist or
+     * @param repoUrl   the URL of the remote repository to clone
+     * @param branch    the branch of the repository to clone. If null, the default branch is cloned.
+     * @param directory the directory where the repository will be cloned into. It should not exist or
      *                  be an empty directory.
-     * @throws GitAPIException If any error occurs during the cloning process.
+     * @throws GitAPIException if any error occurs during the cloning process
      */
     public static void cloneRepository(String repoUrl, String branch, File directory) throws GitAPIException {
         LOGGER.info("Cloning repository: " + repoUrl);
@@ -38,21 +33,22 @@ public class GitUtils {
                 .setDirectory(directory)
                 .setBranch(branch)
                 .call();
+        LOGGER.info("Clone completed successfully {}", repoUrl);
     }
 
     /**
-     * Fetches updates from the remote repository associated with a local repository path.
-     * This method is used to update the local repository with changes from its remote counterpart without
+     * Fetches updates from the remote repository associated with a local repository path, without
      * merging those changes.
      *
-     * @param repoPath The path to the local repository which is set up to track a remote repository.
-     * @throws IOException     If the local repository path cannot be accessed.
-     * @throws GitAPIException If any error occurs during the fetch operation.
+     * @param repoPath the path to the local repository which is set up to track a remote repository
+     * @throws IOException     if the local repository path cannot be accessed
+     * @throws GitAPIException if any error occurs during the fetch operation
      */
     public static void fetchRepository(File repoPath) throws IOException, GitAPIException {
         LOGGER.info("Fetching changes for repository: " + repoPath);
         try (Git git = Git.open(repoPath)) {
             git.fetch().call();
+            LOGGER.info("Fetch completed successfully {}", repoPath);
         }
     }
 }

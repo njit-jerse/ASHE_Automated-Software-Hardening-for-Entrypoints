@@ -11,55 +11,50 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 // TODO: Add this functionality to the README
 /**
- * The {@code ASHEAutomation} class provides automation for processing Java files
- * within a given directory, specifically aiming to process each Java file using
- * the ASHE framework. It iterates over all files in a directory, identifies Java files,
- * and then processes each Java file to apply ASHE's minimization and correction mechanisms.
- * <p>
- * This class is primarily utilized for batch processing of multiple Java files within
- * a project, applying ASHE's methodologies to each file, thereby aiding in code
- * optimization and error correction at a larger scale.
+ * * The {@code AsheAutomation} class provides automation for processing Java files
+ * * within a given directory. It applies {@code ASHE}'s minimization and correction mechanisms to
+ * * Java files in or under a given directory.
  */
-public class ASHEAutomation {
-    private static final Logger LOGGER = LogManager.getLogger(ASHEAutomation.class);
+public class AsheAutomation {
+    private static final Logger LOGGER = LogManager.getLogger(AsheAutomation.class);
 
     /**
-     * Iterates over all files in the given directory. If a file is a directory itself,
-     * this method is called recursively on that directory. If a file is a Java file,
-     * it is processed using the {@code processJavaFile} method.
+     * Calls the {@code processJavaFile} method on each Java file in or under
+     * the given directory.
      *
-     * @param dir      The directory to iterate over.
-     * @param rootPath The root path of the project, used for determining the relative
-     *                 path of each Java file within the project structure.
-     * @throws IOException          if an I/O error occurs while accessing the directory.
-     * @throws ExecutionException   if an execution error occurs while processing a Java file.
-     * @throws InterruptedException if the thread running the process is interrupted.
-     * @throws TimeoutException     if the processing of a Java file exceeds a defined timeout.
+     * @param dir      the directory to iterate over
+     * @param rootPath the root path of the project, used for determining the relative
+     *                 path of each Java file within the project structure
+     * @throws IOException if an I/O error occurs while accessing the directory
      */
-    public static void iterateJavaFiles(File dir, String rootPath)
-            throws IOException, ExecutionException, InterruptedException, TimeoutException {
+    public static void iterateJavaFiles(File dir, String rootPath) throws IOException {
         LOGGER.info("Iterating over Java files in directory: {}", dir.getAbsolutePath());
-        File[] files = dir.listFiles();
 
-        if (files == null) {
-            return;
+        try (Stream<Path> paths = Files.walk(Paths.get(dir.getAbsolutePath()))) {
+            paths.filter(Files::isRegularFile)
+                    // include only files with .java extension
+                    .filter(path -> path.toString().endsWith(".java"))
+                    .forEach(path -> {
+                        try {
+                            processJavaFile(path.toFile(), rootPath);
+                        } catch (IOException | ExecutionException | InterruptedException | TimeoutException e) {
+                            LOGGER.error("Error processing Java file: {}", path.toFile().getAbsolutePath(), e);
+                            throw new RuntimeException("Error processing Java file: " + path.toFile().getAbsolutePath(), e);
+                        }
+                    });
         }
-
-        for (File file : files) {
-            if (file.isDirectory()) {
-                iterateJavaFiles(file, rootPath);
-            } else if (file.getName().endsWith(".java")) {
-                processJavaFile(file, rootPath);
-            }
-        }
+        LOGGER.info("Completed iterating over Java files in directory: {}", dir.getAbsolutePath());
     }
 
     /**
@@ -67,13 +62,13 @@ public class ASHEAutomation {
      * the file to extract class and method information, and then for each public method,
      * the ASHE 'run' method is invoked to apply minimization and error correction.
      *
-     * @param javaFile        The Java file to be processed.
-     * @param projectRootPath The root path of the project, used for determining the
-     *                        relative path of the Java file.
-     * @throws IOException          if an I/O error occurs when opening or parsing the file.
-     * @throws ExecutionException   if the ASHE framework encounters an error during execution.
-     * @throws InterruptedException if the ASHE execution is interrupted.
-     * @throws TimeoutException     if the ASHE execution takes longer than the allowed time.
+     * @param javaFile        the Java file to be processed
+     * @param projectRootPath the root path of the project, used for determining the
+     *                        relative path of the Java file
+     * @throws IOException          if an I/O error occurs when opening or parsing the file
+     * @throws ExecutionException   if the ASHE framework encounters an error during execution
+     * @throws InterruptedException if the ASHE execution is interrupted
+     * @throws TimeoutException     if the ASHE execution takes longer than the allowed time
      */
     private static void processJavaFile(File javaFile, String projectRootPath)
             throws IOException, ExecutionException, InterruptedException, TimeoutException {
@@ -100,7 +95,7 @@ public class ASHEAutomation {
                                     .map(p -> p.getType().asString())
                                     .collect(Collectors.joining(", "));
                             String targetMethod = fullClassName + "#" + method.getNameAsString() + "(" + parameters + ")";
-
+                            LOGGER.info("Target method: {}", targetMethod);
                             ASHE ashe = new ASHE();
                             ashe.run(projectRootPath, targetFile, targetMethod);
                         }
@@ -123,13 +118,10 @@ public class ASHEAutomation {
      *                 <li>The path to the directory containing Java files to be processed.</li>
      *                 <li>The root path of the project for relative path calculation.</li>
      *             </ol>
-     * @throws IOException          if an I/O error occurs while accessing the directory.
-     * @throws ExecutionException   if an execution error occurs during the processing.
-     * @throws InterruptedException if the thread running the process is interrupted.
-     * @throws TimeoutException     if the processing of a file exceeds the allotted time.
+     * @throws IOException if an I/O error occurs while accessing the directory
      */
     public static void main(String[] args)
-            throws IOException, ExecutionException, InterruptedException, TimeoutException {
+            throws IOException {
         if (args.length != 2) {
             LOGGER.error("Invalid number of arguments. Expected 2 arguments: <Directory Path> <Project Root Path>");
             System.exit(1);
