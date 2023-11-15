@@ -225,8 +225,7 @@ public class RepositoryAutomationEngine {
      */
     public static void main(String[] args) {
         if (args.length != 2) {
-            LOGGER.error("Please provide the path to the repositories CSV file and the directory where you would" +
-                    "like to clone repositories.");
+            LOGGER.error("Provide 2 arguments: the repositories CSV file and the directory in which to clone repositories.");
             System.exit(1);
         }
 
