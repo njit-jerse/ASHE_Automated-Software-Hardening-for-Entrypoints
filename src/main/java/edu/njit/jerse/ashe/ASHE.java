@@ -109,7 +109,7 @@ public class ASHE {
         boolean isOriginalMethodReplaced = MethodReplacementService.replaceOriginalTargetMethod(sourceFilePath, originalFilePath, methodName);
 
         if (!isOriginalMethodReplaced) {
-//            LOGGER.error("Original method was not replaced.");
+            LOGGER.error("Original method was not replaced.");
             throw new RuntimeException("Original method was not replaced.");
         }
         LOGGER.info("Original method replaced successfully.");

@@ -1,6 +1,6 @@
 package automation;
 
-import edu.njit.jerse.automation.ASHEAutomation;
+import edu.njit.jerse.automation.AsheAutomation;
 import org.junit.jupiter.api.Test;
 import java.io.File;
 import java.io.IOException;
@@ -9,7 +9,7 @@ import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class ASHEAutomationTest {
+class AsheAutomationTest {
 
     @Test
     void shouldProcessJavaFilesInDirectory() throws Exception {
@@ -20,7 +20,7 @@ class ASHEAutomationTest {
         File javaFile2 = createFile(tempDirectory, "Test2.java");
         File txtFile1 = createFile(tempDirectory, "Test1.txt");
 
-        ASHEAutomation.iterateJavaFiles(tempDirectory.toFile(), tempDirectory.toString());
+        AsheAutomation.iterateJavaFiles(tempDirectory.toFile(), tempDirectory.toString());
     }
 
     @Test
@@ -29,7 +29,7 @@ class ASHEAutomationTest {
         File txtFile = createFile(tempDirectory, "test.txt");
         long lastModifiedTxtFile = txtFile.lastModified();
 
-        ASHEAutomation.iterateJavaFiles(tempDirectory.toFile(), tempDirectory.toString());
+        AsheAutomation.iterateJavaFiles(tempDirectory.toFile(), tempDirectory.toString());
 
         assertEquals(lastModifiedTxtFile, txtFile.lastModified());
     }
@@ -38,7 +38,7 @@ class ASHEAutomationTest {
     void shouldHandleEmptyDirectory() throws Exception {
         Path tempDirectory = Files.createTempDirectory("tempDir");
 
-        ASHEAutomation.iterateJavaFiles(tempDirectory.toFile(), tempDirectory.toString());
+        AsheAutomation.iterateJavaFiles(tempDirectory.toFile(), tempDirectory.toString());
 
         assertTrue(true);
     }
