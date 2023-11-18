@@ -29,6 +29,7 @@ import java.util.stream.Collectors;
  */
 public final class MethodReplacementService {
     private static final Logger LOGGER = LogManager.getLogger(MethodReplacementService.class);
+    private static String errorMessage = "";
 
     /**
      * Private constructor to prevent instantiation.
@@ -55,8 +56,8 @@ public final class MethodReplacementService {
 
         Path path = Paths.get(absoluteFilePath);
 
-        Optional<MethodSignature> methodSignatureOpt = JavaCodeParser.extractMethodSignature(newMethodCode);
-        if (methodSignatureOpt.isEmpty() || !isValidMethodSignature(methodSignatureOpt.get())) {
+        MethodSignature methodSignature = JavaCodeParser.extractMethodSignature(newMethodCode);
+        if (!isValidMethodSignature(methodSignature)) {
             LOGGER.error("Could not parse the provided method.");
             return false;
         }
@@ -65,20 +66,14 @@ public final class MethodReplacementService {
         try {
             cu = StaticJavaParser.parse(path);
         } catch (Exception ex) {
-            String errorMessage = (ex.getMessage() != null) ? ex.getMessage() : "Unknown error";
+            errorMessage = (ex.getMessage() != null) ? ex.getMessage() : "Unknown error";
             LOGGER.error("Error while parsing file {}: {}", path, errorMessage);
             return false;
         }
 
-        Optional<ClassOrInterfaceDeclaration> classOpt = getClassDeclaration(cu, className);
-        if (classOpt.isEmpty()) {
-            LOGGER.error("No class found in {}", path);
-            return false;
-        }
-
-        MethodDeclaration newMethod = createNewMethodFromSignature(methodSignatureOpt.get(), newMethodCode);
-
-        boolean wasMethodReplaced = replaceMethodInClassDeclaration(classOpt.get(), newMethod, methodSignatureOpt.get());
+        ClassOrInterfaceDeclaration classDec = getClassDeclaration(cu, className);
+        MethodDeclaration newMethod = createNewMethodFromSignature(methodSignature, newMethodCode);
+        boolean wasMethodReplaced = replaceMethodInClassDeclaration(classDec, newMethod, methodSignature);
         if (!wasMethodReplaced) {
             LOGGER.error("No matching method found to replace in file: {}", absoluteFilePath);
             return false;
@@ -90,6 +85,7 @@ public final class MethodReplacementService {
         } else {
             LOGGER.error("Method replacement failed for file: {}", absoluteFilePath);
         }
+
         return didWriteCUToFile;
     }
 
@@ -230,25 +226,25 @@ public final class MethodReplacementService {
      * Retrieves the declaration of a specific class or interface by name from the
      * provided compilation unit.
      *
-     * @param cu        The compilation unit from which the class or interface
-     *                  declaration needs to be extracted.
-     * @param className The name of the class or interface whose declaration is
-     *                  to be fetched.
-     * @return An {@code Optional} containing the declaration of the target
-     * class or interface if found; otherwise, an empty {@code Optional}.
+     * @param cu        the compilation unit from which the class or interface
+     *                  declaration needs to be extracted
+     * @param className the name of the class or interface whose declaration is
+     *                  to be fetched
+     * @return the declaration of the target class or interface.
      */
-    private static Optional<ClassOrInterfaceDeclaration> getClassDeclaration(CompilationUnit cu, String className) {
+    private static ClassOrInterfaceDeclaration getClassDeclaration(CompilationUnit cu, String className) {
         List<ClassOrInterfaceDeclaration> classes = cu.findAll(ClassOrInterfaceDeclaration.class);
 
         for (ClassOrInterfaceDeclaration classOrInterface : classes) {
             if (classOrInterface.getNameAsString().equals(className)) {
                 LOGGER.debug("Retrieved the targeted class declaration: {}", className);
-                return Optional.of(classOrInterface);
+                return classOrInterface;
             }
         }
 
-        LOGGER.warn("The targeted class declaration was not found in the provided compilation unit.");
-        return Optional.empty();
+        errorMessage = "The targeted class declaration was not found in the provided compilation unit.";
+        LOGGER.warn(errorMessage);
+        throw new IllegalArgumentException(errorMessage);
     }
 
     /**
@@ -324,7 +320,7 @@ public final class MethodReplacementService {
             Files.write(path, cu.toString().getBytes(), StandardOpenOption.TRUNCATE_EXISTING);
             return true;
         } catch (IOException ex) {
-            String errorMessage = (ex.getMessage() != null) ? ex.getMessage() : "Unknown error";
+            errorMessage = (ex.getMessage() != null) ? ex.getMessage() : "Unknown error";
             LOGGER.error("Error writing to file {}: {}", path, errorMessage);
             return false;
         }

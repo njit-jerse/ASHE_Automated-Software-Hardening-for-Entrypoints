@@ -6,6 +6,7 @@ import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.Modifier;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
+import com.github.javaparser.ast.stmt.BlockStmt;
 import edu.njit.jerse.ashe.services.MethodReplacementService;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -14,6 +15,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -28,6 +30,7 @@ import java.util.stream.Collectors;
 public final class JavaCodeParser {
     private static final Logger LOGGER = LogManager.getLogger(MethodReplacementService.class);
     private static final Pattern JavaCodeBlockPattern = Pattern.compile("```java(.*?)```", Pattern.DOTALL);
+    private static String errorMessage = "";
 
     /**
      * Private constructor to prevent instantiation.
@@ -98,34 +101,42 @@ public final class JavaCodeParser {
     /**
      * Extracts method signature from a given method string.
      *
-     * @param method the method string from which to extract the signature.
-     * @return an Optional containing {@link MethodSignature} if found, else empty.
+     * @param method the method string from which to extract the signature
+     * @return {@link MethodSignature} representing the extracted method signature
      */
-    public static Optional<MethodSignature> extractMethodSignature(String method) {
+    public static MethodSignature extractMethodSignature(String method) {
         try {
             CompilationUnit cu = StaticJavaParser.parse(method);
-
             Optional<MethodDeclaration> methodDeclarationOpt = cu.findFirst(MethodDeclaration.class);
-            if (methodDeclarationOpt.isPresent()) {
-                MethodDeclaration methodDeclaration = methodDeclarationOpt.get();
 
-                String returnType = methodDeclaration.getType().asString();
-                String name = methodDeclaration.getName().asString();
-                String params = extractParameters(methodDeclaration);
-                List<Modifier.Keyword> modifiers = extractModifiers(methodDeclaration);
-                ModifierPresent presence = determineModifierPresence(modifiers);
-
-                LOGGER.debug("Extracted method signature: Modifiers={} ReturnType={} Name={} Parameters={}",
-                        modifiers.isEmpty() ? "None" : modifiers.stream().map(Enum::name).collect(Collectors.joining(", ")), returnType, name, params);
-
-                return Optional.of(new MethodSignature(presence, modifiers, returnType, name, params));
+            // Explicitly check if the method declaration is present
+            if (methodDeclarationOpt.isEmpty()) {
+                errorMessage = "Invalid method string";
+                LOGGER.error(errorMessage);
+                throw new NoSuchElementException(errorMessage);
             }
+
+            MethodDeclaration methodDeclaration = methodDeclarationOpt.get();
+            String returnType = methodDeclaration.getType().asString();
+            String name = methodDeclaration.getName().asString();
+            String params = extractParameters(methodDeclaration);
+            List<Modifier.Keyword> modifiers = extractModifiers(methodDeclaration);
+            ModifierPresent presence = determineModifierPresence(modifiers);
+
+            LOGGER.info("Extracted method signature: Modifiers={} ReturnType={} Name={} Parameters={}",
+                    modifiers.isEmpty() ? "None" : modifiers.stream().map(Enum::name).collect(Collectors.joining(", ")),
+                    returnType, name, params);
+
+            return new MethodSignature(presence, modifiers, returnType, name, params);
         } catch (ParseProblemException ex) {
-            LOGGER.error("Failed to parse method due to syntax error(s): {}", ex.getProblems());
+            errorMessage = "Failed to parse method due to syntax error(s): " + ex.getProblems();
+            LOGGER.error(errorMessage);
+            throw new RuntimeException(errorMessage);
         } catch (Exception ex) {
-            LOGGER.error("Failed to extract method signature due to an unexpected error: ", ex);
+            errorMessage = "Failed to extract method signature due to an unexpected error: " + ex;
+            LOGGER.error(errorMessage);
+            throw new RuntimeException(errorMessage);
         }
-        return Optional.empty();
     }
 
     private static ModifierPresent determineModifierPresence(List<Modifier.Keyword> keywords) {
@@ -206,23 +217,35 @@ public final class JavaCodeParser {
      * Extracts the body of a specified method from the given Java code string.
      *
      * @param method the entire Java method as a string
-     * @return the body of the method as a string, or an empty string if not found
+     * @return the body of the method as a string
      */
     public static String extractMethodBody(String method) {
+        CompilationUnit cu;
         try {
-            CompilationUnit cu = StaticJavaParser.parse(method);
-            MethodDeclaration methodDeclaration = cu.findFirst(MethodDeclaration.class).orElse(null);
-
-            if (methodDeclaration != null && methodDeclaration.getBody().isPresent()) {
-                return methodDeclaration.getBody().get().toString();
-            } else {
-                LOGGER.warn("Method body not found.");
-            }
-
-        } catch (Exception ex) {
-            LOGGER.error("Failed to extract method body: ", ex);
+            cu = StaticJavaParser.parse(method);
+        } catch (ParseProblemException ex) {
+            errorMessage = "Failed to parse method: " + ex.getMessage();
+            LOGGER.error(errorMessage);
+            throw new RuntimeException(errorMessage);
         }
-        return "";
+
+        Optional<MethodDeclaration> methodDeclarationOpt = cu.findFirst(MethodDeclaration.class);
+        if (methodDeclarationOpt.isEmpty()) {
+            errorMessage = "Method declaration not found.";
+            LOGGER.error(errorMessage);
+            throw new NoSuchElementException(errorMessage);
+        }
+
+        MethodDeclaration methodDeclaration = methodDeclarationOpt.get();
+        Optional<BlockStmt> methodBodyOpt = methodDeclaration.getBody();
+
+        if (methodBodyOpt.isEmpty()) {
+            errorMessage = "Method body not found.";
+            LOGGER.error(errorMessage);
+            throw new NoSuchElementException(errorMessage);
+        }
+
+        return methodBodyOpt.get().toString();
     }
 
     /**
@@ -231,37 +254,40 @@ public final class JavaCodeParser {
      * @param filePath   the path to the Java file
      * @param methodName the name of the method you're looking for
      * @return the name of the class or interface containing the specified method
-     * @throws FileNotFoundException If the file cannot be read or if no such method exists
+     * @throws FileNotFoundException if the file cannot be read or if no such method exists
      */
     public static ClassOrInterfaceDeclaration extractClassByMethodName(String filePath, String methodName)
             throws FileNotFoundException {
+        CompilationUnit cu;
         try (FileInputStream fis = new FileInputStream(filePath)) {
-            CompilationUnit cu = StaticJavaParser.parse(fis);
-            List<ClassOrInterfaceDeclaration> classes = cu.findAll(ClassOrInterfaceDeclaration.class);
-
-            ClassOrInterfaceDeclaration result =
-                    classes.stream()
-                            .filter(declaration -> declaration
-                                    .getMethods()
-                                    .stream()
-                                    .anyMatch(method ->
-                                            method.getNameAsString().equals(methodName)
-                                    )
-                            )
-                            .findFirst()
-                            .orElse(null);
-
-            if (result == null) {
-                LOGGER.warn("No class or interface declarations containing the method {} found in file: {}", methodName, filePath);
-                throw new FileNotFoundException("No class or interface declarations containing the method " + methodName + " found in file: " + filePath);
-            }
-
-            return result;
-
+            cu = StaticJavaParser.parse(fis);
         } catch (IOException ex) {
-            LOGGER.error("Error reading file: {}", filePath, ex);
-            throw new FileNotFoundException("Error reading file: " + ex.getMessage());
+            errorMessage = "Error reading file: " + filePath + " " + ex.getMessage();
+            LOGGER.error(errorMessage);
+            throw new FileNotFoundException(errorMessage);
+        } catch (ParseProblemException ex) {
+            errorMessage = "Parse error in file: " + filePath + " " + ex.getMessage();
+            LOGGER.error(errorMessage);
+            throw new RuntimeException(errorMessage);
         }
+
+        List<ClassOrInterfaceDeclaration> classes = cu.findAll(ClassOrInterfaceDeclaration.class);
+
+        Optional<ClassOrInterfaceDeclaration> classOrInterfaceOpt = classes.stream()
+                .filter(declaration -> declaration
+                        .getMethods()
+                        .stream()
+                        .anyMatch(method -> method.getNameAsString().equals(methodName)))
+                .findFirst();
+
+        if (classOrInterfaceOpt.isEmpty()) {
+            errorMessage = "No class or interface declarations containing the method " +
+                    methodName + " found in file: " + filePath;
+            LOGGER.error(errorMessage);
+            throw new FileNotFoundException(errorMessage);
+        }
+
+        return classOrInterfaceOpt.get();
     }
 
     /**
