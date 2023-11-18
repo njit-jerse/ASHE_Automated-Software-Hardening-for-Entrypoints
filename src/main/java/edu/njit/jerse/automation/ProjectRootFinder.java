@@ -14,9 +14,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * The {@code ProjectRootFinder} class is responsible for scanning a given directory
- * and its subdirectories to identify Java project roots. It primarily looks for directories
- * that conform to standard Java source directory structures, excluding test directories.
+ * The {@link ProjectRootFinder} class scans a directory and its subdirectories to find Java project roots.
+ * It identifies project roots by looking for directories that follow the standard Java source
+ * directory structure, src/main/java, and excludes test-related directories.
  */
 public class ProjectRootFinder {
     private static final Logger LOGGER = LogManager.getLogger(ProjectRootFinder.class);
@@ -36,15 +36,18 @@ public class ProjectRootFinder {
             @Override
             public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
                 File dirFile = dir.toFile();
+                String dirFilePath = dirFile.getAbsolutePath().replace("\\", "/");
 
-                if (isTestDirectory(dirFile)) {
-                    LOGGER.info("Skipping test directory: {}", dirFile.getAbsolutePath());
+                boolean isTestDirectory = dirFilePath.contains("/test/") || dirFilePath.contains("/tests/");
+                if (isTestDirectory) {
+                    LOGGER.info("Skipping test directory: {}", dirFilePath);
                     // Skip test directories
                     return FileVisitResult.SKIP_SUBTREE;
                 }
 
-                if (isJavaSourceRoot(dirFile)) {
-                    LOGGER.info("Found Java root: {}", dirFile.getAbsolutePath());
+                boolean isJavaRoot = dirFilePath.endsWith(AsheAutomation.JAVA_SOURCE_DIR);
+                if (isJavaRoot) {
+                    LOGGER.info("Found Java root: {}", dirFilePath);
                     javaRoots.add(dirFile);
                     // Once a Java source root is found, skip its subdirectories
                     return FileVisitResult.SKIP_SUBTREE;
@@ -52,39 +55,9 @@ public class ProjectRootFinder {
 
                 return FileVisitResult.CONTINUE;
             }
-
-            @Override
-            public FileVisitResult visitFileFailed(Path file, IOException e) {
-                LOGGER.error("Failed to visit file: " + file, e);
-                return FileVisitResult.CONTINUE;
-            }
         });
 
         LOGGER.info("Java root search completed in directory: {}", directory.getAbsolutePath());
         return javaRoots;
-    }
-
-    /**
-     * Determines if the given directory is a Java source root.
-     * A directory is considered a Java source root if it ends with '/src/main/java'.
-     *
-     * @param directory the directory to check
-     * @return {@code true} if the directory is a Java source root; {@code false} otherwise
-     */
-    private static boolean isJavaSourceRoot(File directory) {
-        String path = directory.getAbsolutePath().replace("\\", "/");
-        return path.endsWith("/src/main/java");
-    }
-
-    /**
-     * Determines if the given directory is a test directory.
-     * Test directories are identified by their paths containing '/test/' or '/tests/'.
-     *
-     * @param directory the directory to check
-     * @return {@code true} if the directory is a test directory; {@code false} otherwise
-     */
-    private static boolean isTestDirectory(File directory) {
-        String path = directory.getAbsolutePath().replace("\\", "/");
-        return path.contains("/test/") || path.contains("/tests/");
     }
 }

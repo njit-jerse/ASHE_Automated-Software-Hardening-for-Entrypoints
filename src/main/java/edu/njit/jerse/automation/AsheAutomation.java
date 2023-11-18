@@ -22,12 +22,12 @@ import java.util.stream.Stream;
 
 // TODO: Add this functionality to the README
 /**
- * * The {@code AsheAutomation} class provides automation for processing Java files
- * * within a given directory. It applies {@code ASHE}'s minimization and correction mechanisms to
- * * Java files in or under a given directory.
+ * The {@link AsheAutomation} class applies {@link ASHE}'s minimization and correction mechanisms to
+ * Java files in or under a given directory.
  */
 public class AsheAutomation {
     private static final Logger LOGGER = LogManager.getLogger(AsheAutomation.class);
+    public static final String JAVA_SOURCE_DIR = "src/main/java";
 
     /**
      * Calls the {@code processJavaFile} method on each Java file in or under
@@ -39,9 +39,10 @@ public class AsheAutomation {
      * @throws IOException if an I/O error occurs while accessing the directory
      */
     public static void iterateJavaFiles(File dir, String rootPath) throws IOException {
-        LOGGER.info("Iterating over Java files in directory: {}", dir.getAbsolutePath());
+        String dirAbsolutePath = dir.getAbsolutePath();
+        LOGGER.info("Iterating over Java files in directory: {}", dirAbsolutePath);
 
-        try (Stream<Path> paths = Files.walk(Paths.get(dir.getAbsolutePath()))) {
+        try (Stream<Path> paths = Files.walk(Paths.get(dirAbsolutePath))) {
             paths.filter(Files::isRegularFile)
                     // include only files with .java extension
                     .filter(path -> path.toString().endsWith(".java"))
@@ -54,48 +55,60 @@ public class AsheAutomation {
                         }
                     });
         }
-        LOGGER.info("Completed iterating over Java files in directory: {}", dir.getAbsolutePath());
+        LOGGER.info("Completed iterating over Java files in directory: {}", dirAbsolutePath);
     }
 
     /**
-     * Processes an individual Java file using the ASHE framework. This involves parsing
-     * the file to extract class and method information, and then for each public method,
-     * the ASHE 'run' method is invoked to apply minimization and error correction.
+     * Processes an individual Java file using {@link ASHE}. This involves parsing the file to
+     * extract class and method information, and then for each public method in a public class
+     * the {@link ASHE} {@code run} method is invoked to apply minimization and error correction.
      *
      * @param javaFile        the Java file to be processed
-     * @param projectRootPath the root path of the project, used for determining the
-     *                        relative path of the Java file
+     * @param projectRootPath the root path of the project, must be a prefix of the javaFile's absolute path
      * @throws IOException          if an I/O error occurs when opening or parsing the file
-     * @throws ExecutionException   if the ASHE framework encounters an error during execution
-     * @throws InterruptedException if the ASHE execution is interrupted
-     * @throws TimeoutException     if the ASHE execution takes longer than the allowed time
+     * @throws ExecutionException   if {@link ASHE} encounters an error during execution
+     * @throws InterruptedException if {@link ASHE}'s execution is interrupted
+     * @throws TimeoutException     if {@link ASHE}'s execution takes longer than the allowed time
      */
     private static void processJavaFile(File javaFile, String projectRootPath)
             throws IOException, ExecutionException, InterruptedException, TimeoutException {
-        LOGGER.info("Processing Java file: {}", javaFile.getAbsolutePath());
+        LOGGER.info("Java file to process: {}", javaFile.getAbsolutePath());
+        LOGGER.info("Project root path: {}", projectRootPath);
+
+        String javaFileAbsolutePath = javaFile.getAbsolutePath();
+        if (!javaFileAbsolutePath.startsWith(projectRootPath)) {
+            throw new IllegalArgumentException("The project root path must be a prefix of the Java file's absolute path");
+        }
+        LOGGER.info("Processing Java file: {}", javaFileAbsolutePath);
+
         CompilationUnit cu = StaticJavaParser.parse(javaFile);
 
-        String targetFile = javaFile
-                .getAbsolutePath()
-                .substring(projectRootPath.length() + 1)
-                .replace(File.separatorChar, '/');
+        // targetFile - the Java file ASHE will target for minimization and error correction
+        // Example: edu/njit/jerse/automation/AsheAutomation.java
+        String targetFile = formatRelativePathForJavaFile(javaFile, projectRootPath);
 
-        if (targetFile.startsWith("src/main/java/")) {
-            targetFile = targetFile.substring("src/main/java/".length());
-        }
+        String packageName = cu.getPackageDeclaration()
+                .map(NodeWithName::getNameAsString)
+                .orElse("");
 
-        String packageName = cu.getPackageDeclaration().map(NodeWithName::getNameAsString).orElse("");
+        // Example: edu.njit.jerse.automation
+        String packagePrefix = packageName.isEmpty() ? "" : packageName + ".";
+
         for (TypeDeclaration<?> type : cu.getTypes()) {
             if (type.isPublic()) {
-                String fullClassName = packageName.isEmpty() ? type.getNameAsString() : packageName + "." + type.getNameAsString();
+                // Example: AsheAutomation
+                String className = type.getNameAsString();
+
+                // Example: edu.njit.jerse.automation.AsheAutomation
+                String packageAndClassName = packagePrefix + className;
+
                 for (BodyDeclaration<?> member : type.getMembers()) {
                     if (member instanceof MethodDeclaration method) {
                         if (method.isPublic()) {
-                            String parameters = method.getParameters().stream()
-                                    .map(p -> p.getType().asString())
-                                    .collect(Collectors.joining(", "));
-                            String targetMethod = fullClassName + "#" + method.getNameAsString() + "(" + parameters + ")";
-                            LOGGER.info("Target method: {}", targetMethod);
+                            // targetMethod - the method ASHE will target for minimization and error correction
+                            // Example: edu.njit.jerse.automation.AsheAutomation#main(String[])
+                            String targetMethod = fullyQualifiedMethodReference(packageAndClassName, method);
+
                             ASHE ashe = new ASHE();
                             ashe.run(projectRootPath, targetFile, targetMethod);
                         }
@@ -103,20 +116,74 @@ public class AsheAutomation {
                 }
             }
         }
-        LOGGER.info("Completed processing Java file: {}", javaFile.getAbsolutePath());
+        LOGGER.info("Completed processing Java file: {}", javaFileAbsolutePath);
     }
 
     /**
-     * The entry point of the application automating ASHE.
-     * Expects two command-line arguments:
-     * the path to the directory containing Java files and the root path of the project.
-     * This method initiates the automation process on the specified directory, applying
-     * the ASHE framework to each Java file found.
+     * Finds the relative path from the project root to the specified Java file. It formats the relative path
+     * to use forward slashes and strips out the leading source directory path.
+     *
+     * @param javaFile        the file for which the relative path is needed
+     *                        Example: /absolute/path/src/main/java/com/example/foo/Bar.java
+     * @param projectRootPath the absolute path to the root of the project
+     *                        Example: /absolute/path/src/main/java
+     * @return the relative path from the project root to the Java file
+     * Example of a relative path: com/example/foo/Bar.java
+     */
+    private static String formatRelativePathForJavaFile(File javaFile, String projectRootPath) {
+        Path projectRoot = Paths.get(projectRootPath);
+        Path absoluteFilePath = javaFile.toPath();
+
+        String relativePath = projectRoot.relativize(absoluteFilePath).toString();
+        relativePath = relativePath.replace(File.separatorChar, '/');
+
+        if (relativePath.startsWith(JAVA_SOURCE_DIR)) {
+            relativePath = relativePath.substring(JAVA_SOURCE_DIR.length());
+        }
+
+        LOGGER.info("Formatted relative Java file path: {}", relativePath);
+        return relativePath;
+    }
+
+    /**
+     * Formats a fully qualified method reference that includes the package name, class name, method name,
+     * and parameter types. This reference is designed to uniquely identify the method for processing by {@link ASHE}.
+     *
+     * @param packageAndClassName the full package path and class name
+     *                            Example: com.example.foo.Bar
+     * @param method              the method declaration to identify
+     *                            Example: main(String[])
+     * @return a string that represents the fully qualified method reference
+     * Example of a fully qualified method reference: com.example.foo.Bar#main(String[])
+     */
+    private static String fullyQualifiedMethodReference(String packageAndClassName, MethodDeclaration method) {
+        String methodName = method.getNameAsString();
+        String parameters = method.getParameters().stream()
+                .map(p -> p.getType().asString())
+                .collect(Collectors.joining(", "));
+
+        String methodReference = packageAndClassName + "#" + methodName + "(" + parameters + ")";
+        LOGGER.info("Fully qualified method reference: {}", methodReference);
+
+        return methodReference;
+    }
+
+    /**
+     * The entry point of the application automating {@link ASHE}.
      *
      * @param args command-line arguments, expected order:
      *             <ol>
-     *                 <li>The path to the directory containing Java files to be processed.</li>
-     *                 <li>The root path of the project for relative path calculation.</li>
+     *                 <li>
+     *                     The absolute path to the directory containing Java files to be processed.
+     *                     Example: /absolute/path/to/project/src/main/java/com/example/foo
+     *                 </li>
+     *                 <li>
+     *                     The absolute root path of the project, which is used to determine the relative paths
+     *                     of Java files during processing. This path is used as a reference to calculate the relative
+     *                     paths for Java files and should be a common ancestor in the directory hierarchy for all Java
+     *                     files being processed.
+     *                     Example: /absolute/path/to/project
+     *                 </li>
      *             </ol>
      * @throws IOException if an I/O error occurs while accessing the directory
      */
