@@ -1,6 +1,7 @@
 plugins {
     id 'java'
     id "org.checkerframework" version "0.6.33"
+    // TODO: Add spotless code formatter and run it
 }
 
 java {
@@ -9,8 +10,8 @@ java {
     }
 }
 
-group = 'org.example'
-version = '1.0-SNAPSHOT'
+group = 'edu.njit.jerse'
+version = '0.1-SNAPSHOT'
 
 repositories {
     mavenCentral()
