@@ -21,6 +21,39 @@ public class OpenAIService implements ApiService {
     private static final Logger LOGGER = LogManager.getLogger(OpenAIService.class);
 
     /**
+     * Period (in seconds) after which a log message is emitted indicating the system is
+     * waiting for an API response. This is used for scheduled logging to give feedback
+     * while waiting for a potentially long-running API call.
+     */
+    private final long gptResponseLoggingPeriod;
+
+    /**
+     * Maximum duration (in seconds) to wait for the API response.
+     */
+    private final long gptResponseTimeout;
+
+    /**
+     * Default constructor initializes the service with default values for
+     * logging period (10 seconds) and response timeout (60 seconds).
+     */
+    public OpenAIService() {
+        this.gptResponseLoggingPeriod = 10;
+        this.gptResponseTimeout = 60;
+    }
+
+    /**
+     * Constructor that allows specifying custom values for the logging period and
+     * response timeout.
+     *
+     * @param gptResponseLoggingPeriod period in seconds for logging waiting messages
+     * @param gptResponseTimeout maximum duration in seconds to wait for the API response
+     */
+    public OpenAIService(long gptResponseLoggingPeriod, long gptResponseTimeout) {
+        this.gptResponseLoggingPeriod = gptResponseLoggingPeriod;
+        this.gptResponseTimeout = gptResponseTimeout;
+    }
+
+    /**
      * Constructs an API request to OpenAI with the provided parameters.
      *
      * @param apiKey         the API key for authorization
@@ -75,17 +108,17 @@ public class OpenAIService implements ApiService {
         CompletableFuture<HttpResponse<String>> futureResponse =
                 client.sendAsync(request, HttpResponse.BodyHandlers.ofString());
 
-        // Log "Waiting for the API response..." every 10 seconds while waiting for the response.
+        // Log "Waiting for the API response..." every {gptResponseLoggingPeriod} seconds while waiting for the response.
         ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
         executor.scheduleAtFixedRate(
                 () -> LOGGER.info("Waiting for API response..."),
                 0,
-                10,
+                gptResponseLoggingPeriod,
                 TimeUnit.SECONDS);
 
         try {
-            // Get the API response or throw a TimeoutException if it takes longer than 60 seconds.
-            HttpResponse<String> response = futureResponse.get(60, TimeUnit.SECONDS);
+            // Get the API response or throw a TimeoutException if it takes longer than {gptResponseTimeout} seconds.
+            HttpResponse<String> response = futureResponse.get(gptResponseTimeout, TimeUnit.SECONDS);
 
             LOGGER.info("API response received with status code " + response.statusCode());
             return response;
