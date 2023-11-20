@@ -1,5 +1,6 @@
 package edu.njit.jerse.automation;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import edu.njit.jerse.ashe.ASHE;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
@@ -20,27 +21,20 @@ import java.util.List;
 // TODO: Add this functionality to the README
 
 /**
- * The {@link RepositoryAutomationEngine} class automates the process of cloning or fetching repositories
- * listed in a CSV file and then processing each repository. Once a repository is cloned or fetched and
- * checked out to the specified branch, the repository is scanned for Java project roots. For each Java
- * project root found, the {@link AsheAutomation} process is applied to automate {@link ASHE} on the project.
+ * The {@link RepositoryAutomationEngine} class filnt clones or fetches repositories
+ * listed in a CSV file.  The {@link AsheAutomation} process is run on
+ * every Java file within the repositories.
  */
 public class RepositoryAutomationEngine {
 
     private static final Logger LOGGER = LogManager.getLogger(RepositoryAutomationEngine.class);
 
-    /**
-     * A record to store repository information.
-     */
+    /** A record to store repository information. */
     private record Repository(
-            /**
-             * The URL of the repository.
-             */
+            /** The URL of the repository. */
             String url,
-            /**
-             * The branch of the repository to be cloned or fetched.
-             */
-            String branch
+            /** The branch of the repository to be cloned or fetched. Null means to use the default branch (often "main" or "master"). */
+            @Nullable String branch
     ) {
         Repository {
             if (url == null || url.isEmpty()) {
@@ -50,10 +44,10 @@ public class RepositoryAutomationEngine {
     }
 
     /**
-     * Reads and processes repositories listed in a specified CSV file. This method
+     * Processes repositories listed in a specified CSV file. This method
      * takes each entry in the CSV file, clones or fetches the corresponding repository,
-     * and then processes it by scanning for Java project roots. Upon locating a Java project
-     * root, the method delegates to {@link AsheAutomation} to process the Java files within.
+     * scans it for Java project roots, and runs
+     * {@link AsheAutomation} to process the Java files within ecah project.
      * <p>
      * The format of the CSV file is as follows:
      * <pre>
@@ -73,7 +67,7 @@ public class RepositoryAutomationEngine {
      * @param repoDir     directory where the repositories will be cloned or fetched
      */
     private static void readAndProcessRepositoriesCsv(String csvFilePath, String repoDir) {
-        LOGGER.info("Starting to read and process CSV file: {}", csvFilePath);
+        LOGGER.info("Starting to process CSV file: {}", csvFilePath);
         try {
             List<Repository> repositories = readRepositoriesFromCsv(csvFilePath);
             processAllRepositories(repositories, repoDir);
@@ -150,30 +144,30 @@ public class RepositoryAutomationEngine {
      * @throws GitAPIException if any error occurs during cloning or fetching the repository
      * @throws IOException     if any error occurs during the cloning or fetching of the repository
      */
-    public static Path cloneOrFetchRepository(String repoUrl, String branch, String repoDir)
+    public static Path cloneOrFetchRepository(String repoUrl, @Nullable String branch, String repoDir)
             throws GitAPIException, IOException {
         LOGGER.info("Attempting to clone or fetch repository: {}", repoUrl);
 
         String repoName = extractRepoName(repoUrl);
         Path repoPath = Paths.get(repoDir, repoName).normalize();
-        if (Files.notExists(repoPath)) {
-            GitUtils.cloneRepository(repoUrl, branch, repoPath.toFile());
-        } else {
+        if (Files.exists(repoPath)) {
             GitUtils.fetchRepository(repoPath.toFile());
+        } else {
+            GitUtils.cloneRepository(repoUrl, branch, repoPath.toFile());
         }
         return repoPath;
     }
 
     /**
-     * Processes a given repository by scanning for Java project roots. For each Java project found,
-     * this method applies the {@link AsheAutomation} process. The method supports processing
+     * Processes a given repository by applying the {@link AsheAutomation}
+     * process to each Java project root. The method supports processing
      * multiple projects within a single repository.
      *
      * @param repoPath path to the local repository
      * @param branch   the branch of the repository to be processed
      * @throws IOException if an I/O error occurs while accessing the file system
      */
-    private static void processSingleRepository(Path repoPath, String branch) throws IOException {
+    private static void processSingleRepository(Path repoPath, @Nullable String branch) throws IOException {
         LOGGER.info("Processing repository at: {} for branch: {}", repoPath, branch);
 
         List<File> projectRoots = ProjectRootFinder.findJavaRoots(repoPath.toFile());
@@ -198,6 +192,8 @@ public class RepositoryAutomationEngine {
     private static String extractRepoName(String repoUrl) {
         LOGGER.info("Extracting repository name from URL: {}", repoUrl);
 
+        String origRepoUrl = repoUrl;
+
         // Remove ".git" suffix
         if (repoUrl.endsWith(".git")) {
             repoUrl = repoUrl.substring(0, repoUrl.length() - ".git".length());
@@ -214,7 +210,7 @@ public class RepositoryAutomationEngine {
             return repoUrl.substring(lastSlashIndex + 1);
         }
 
-        throw new IllegalArgumentException("Invalid repository URL");
+        throw new IllegalArgumentException("Invalid repository URL " + origRepoUrl);
     }
 
     /**
