@@ -167,6 +167,7 @@ public class RepositoryAutomationEngine {
      * @param branch   the branch of the repository to be processed
      * @throws IOException if an I/O error occurs while accessing the file system
      */
+    @SuppressWarnings("nullness:argument")  // Log4J needs to be annotated for nullness
     private static void processSingleRepository(Path repoPath, @Nullable String branch) throws IOException {
         LOGGER.info("Processing repository at: {} for branch: {}", repoPath, branch);
 
