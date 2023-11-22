@@ -1,6 +1,7 @@
 plugins {
     id 'java'
     id "org.checkerframework" version "0.6.33"
+    // TODO: Add spotless code formatter and run it
 }
 
 java {
@@ -9,8 +10,8 @@ java {
     }
 }
 
-group = 'org.example'
-version = '1.0-SNAPSHOT'
+group = 'edu.njit.jerse'
+version = '0.1-SNAPSHOT'
 
 repositories {
     mavenCentral()
@@ -27,6 +28,7 @@ dependencies {
     implementation 'org.apache.logging.log4j:log4j-core:2.20.0'
     implementation group: 'org.apache.commons', name: 'commons-csv', version: '1.10.0'
     implementation group: 'org.eclipse.jgit', name: 'org.eclipse.jgit', version: '6.7.0.202309050840-r'
+    implementation group: 'com.google.guava', name: 'guava', version: '32.1.3-jre'
 }
 
 test {
@@ -40,4 +42,11 @@ checkerFramework {
             'org.checkerframework.checker.optional.OptionalChecker',
             'org.checkerframework.checker.resourceleak.ResourceLeakChecker',
     ]
+}
+
+/* Make Emacs TAGS table */
+task tags(type: Exec) {
+  description "Run etags to create an Emacs TAGS table"
+  environment PATH: "$System.env.PATH:$buildDir/utils/plume-lib/bin"
+  commandLine "bash", "-c", "find src/ -name '*.java' | sort-directory-order | xargs etags"
 }

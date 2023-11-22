@@ -2,6 +2,8 @@ package edu.njit.jerse.automation;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.eclipse.jgit.api.CloneCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 
@@ -9,7 +11,7 @@ import java.io.File;
 import java.io.IOException;
 
 /**
- * The {@code GitUtils} class contains static methods for interacting with Git repositories
+ * The {@link GitUtils} class contains static methods for interacting with Git repositories
  * using the JGit library.
  */
 public class GitUtils {
@@ -26,13 +28,17 @@ public class GitUtils {
      *                  be an empty directory.
      * @throws GitAPIException if any error occurs during the cloning process
      */
-    public static void cloneRepository(String repoUrl, String branch, File directory) throws GitAPIException {
+    public static void cloneRepository(String repoUrl, @Nullable String branch, File directory) throws GitAPIException {
         LOGGER.info("Cloning repository: " + repoUrl);
-        Git.cloneRepository()
+        CloneCommand cloneCommand = Git.cloneRepository()
                 .setURI(repoUrl)
-                .setDirectory(directory)
-                .setBranch(branch)
-                .call();
+                .setDirectory(directory);
+
+        if (branch != null) {
+            cloneCommand.setBranch(branch);
+        }
+
+        cloneCommand.call();
         LOGGER.info("Clone completed successfully {}", repoUrl);
     }
 

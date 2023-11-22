@@ -1,13 +1,15 @@
 package edu.njit.jerse.ashe.services;
 
+import com.google.common.io.CharStreams;
 import edu.njit.jerse.config.Configuration;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 
 /**
- * Provides functionality for compiling Java classes using the Checker Framework.
+ * Provides static methods for compiling Java classes using the Checker Framework.
  * <p>
  * The Checker Framework enhances Java's type system to make it more powerful and expressive,
  * allowing for early error detection in programs. This service utilizes the framework to
@@ -33,7 +35,8 @@ public final class CheckerFrameworkCompiler {
      * Compiles a Java class using the Checker Framework.
      *
      * @param classPath the path to the Java class that needs to be compiled
-     * @return a string containing any errors produced during the compilation
+     * @return a string containing any errors produced during the compilation. If there are no errors,
+     * an empty string is returned
      * @throws IOException If there's an error in executing the compilation command or reading its output
      */
     public static String compileWithCheckerFramework(String classPath) throws IOException {
@@ -44,38 +47,19 @@ public final class CheckerFrameworkCompiler {
         LOGGER.debug("Executing compilation command: {}", String.join(" ", command));
 
         Process compileProcess = Runtime.getRuntime().exec(command);
-        String errorOutput = streamToString(compileProcess.getErrorStream());
+        String errorOutput = CharStreams.toString(new InputStreamReader(compileProcess.getErrorStream(), StandardCharsets.UTF_8));
 
         String extractedError = extractError(errorOutput);
         if (extractedError.isEmpty()) {
             LOGGER.info("Compilation successful for classPath: {}", classPath);
         } else {
             LOGGER.warn(
-                    "Compilation error for classPath {}: "
-                    + System.lineSeparator()
-                    + "{}", classPath, extractedError
+                    "Compilation error for classPath {}: " +
+                            System.lineSeparator() +
+                            "{}", classPath, extractedError
             );
         }
         return extractError(errorOutput);
-    }
-
-    /**
-     * Captures the content of an input stream into a string.
-     *
-     * @param stream the input stream to capture
-     * @return a string representation of the stream's content
-     * @throws IOException If there's an error in reading from the stream
-     */
-    private static String streamToString(InputStream stream) throws IOException {
-        LOGGER.debug("Converting input stream to string...");
-        BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
-        StringBuilder stringBuilder = new StringBuilder();
-        String line;
-        while ((line = reader.readLine()) != null) {
-            stringBuilder.append(line).append(System.lineSeparator());
-        }
-        LOGGER.debug("Finished converting stream to string.");
-        return stringBuilder.toString();
     }
 
     /**
