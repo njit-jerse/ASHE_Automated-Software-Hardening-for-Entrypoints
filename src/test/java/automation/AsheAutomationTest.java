@@ -2,7 +2,8 @@ package automation;
 
 import edu.njit.jerse.automation.AsheAutomation;
 import org.junit.jupiter.api.Test;
-import java.io.File;
+import org.junit.jupiter.api.io.TempDir;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -10,42 +11,42 @@ import java.nio.file.Path;
 import static org.junit.jupiter.api.Assertions.*;
 
 class AsheAutomationTest {
+    @SuppressWarnings("initialization.field.uninitialized")
+    @TempDir
+    Path tempDir;
 
     @Test
     void shouldProcessJavaFilesInDirectory() throws Exception {
-        Path tempDirectory = Files.createTempDirectory("tempDir");
-
         // Creating two Java files in the temporary directory
-        File javaFile1 = createFile(tempDirectory, "Test1.java");
-        File javaFile2 = createFile(tempDirectory, "Test2.java");
-        File txtFile1 = createFile(tempDirectory, "Test1.txt");
+        Path javaFile1 = createFile(tempDir, "Test1.java");
+        Path javaFile2 = createFile(tempDir, "Test2.java");
+        Path txtFile1 = createFile(tempDir, "Test1.txt");
 
-        AsheAutomation.iterateJavaFiles(tempDirectory.toFile(), tempDirectory.toString());
+        AsheAutomation.processAllJavaFiles(tempDir, tempDir.toString());
     }
 
     @Test
     void shouldIgnoreNonJavaFiles() throws Exception {
-        Path tempDirectory = Files.createTempDirectory("tempDir");
-        File txtFile = createFile(tempDirectory, "test.txt");
-        long lastModifiedTxtFile = txtFile.lastModified();
+        Path txtFile = createFile(tempDir, "test.txt");
+        long lastModifiedTxtFile = Files.getLastModifiedTime(txtFile).toMillis();
 
-        AsheAutomation.iterateJavaFiles(tempDirectory.toFile(), tempDirectory.toString());
+        AsheAutomation.processAllJavaFiles(tempDir, tempDir.toString());
 
-        assertEquals(lastModifiedTxtFile, txtFile.lastModified());
+        assertEquals(lastModifiedTxtFile, Files.getLastModifiedTime(txtFile).toMillis());
     }
 
     @Test
     void shouldHandleEmptyDirectory() throws Exception {
-        Path tempDirectory = Files.createTempDirectory("tempDir");
-
-        AsheAutomation.iterateJavaFiles(tempDirectory.toFile(), tempDirectory.toString());
+        AsheAutomation.processAllJavaFiles(tempDir, tempDir.toString());
 
         assertTrue(true);
     }
 
-    private File createFile(Path directory, String fileName) throws IOException {
-        File file = directory.resolve(fileName).toFile();
-        assertTrue(file.createNewFile());
-        return file;
+
+    private Path createFile(Path directory, String fileName) throws IOException {
+        Path filePath = directory.resolve(fileName);
+        Files.createFile(filePath);
+        assertTrue(Files.exists(filePath));
+        return filePath;
     }
 }

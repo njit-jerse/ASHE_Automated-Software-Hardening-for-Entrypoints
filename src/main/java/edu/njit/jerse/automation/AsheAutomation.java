@@ -1,6 +1,7 @@
 package edu.njit.jerse.automation;
 
 import java.util.Optional;
+
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.body.BodyDeclaration;
@@ -22,8 +23,9 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 // TODO: Add this functionality to the README
+
 /**
- * The {@link AsheAutomation} class applies {@link ASHE}'s minimization and correction mechanisms to
+ * The {@code AsheAutomation} class applies {@link ASHE}'s minimization and correction mechanisms to
  * Java files in or under a given directory.
  */
 public class AsheAutomation {
@@ -31,48 +33,48 @@ public class AsheAutomation {
     public static final String JAVA_SOURCE_DIR = "src/main/java";
 
     /**
-     * Calls the {@code processJavaFile} method on each Java file in or under
+     * Calls the {@link #processSingleJavaFile(Path, String)} method on each Java file in or under
      * the given directory.
      *
-     * @param dir      the directory to iterate over
+     * @param dirPath  the path to the directory to iterate over
      * @param rootPath the root path of the project, used for determining the relative
      *                 path of each Java file within the project structure
      * @throws IOException if an I/O error occurs while accessing the directory
      */
-    public static void iterateJavaFiles(File dir, String rootPath) throws IOException {
-        String dirAbsolutePath = dir.getAbsolutePath();
-        LOGGER.info("Iterating over Java files in {}", dirAbsolutePath);
+    public static void processAllJavaFiles(Path dirPath, String rootPath) throws IOException {
+        LOGGER.info("Iterating over Java files in {}", dirPath);
 
-        try (Stream<Path> paths = Files.walk(Paths.get(dirAbsolutePath))) {
+        try (Stream<Path> paths = Files.walk(dirPath)) {
             paths.filter(Files::isRegularFile)
                     // include only files with .java extension
-                    .filter(path -> path.toString().endsWith(".java"))
+                    .filter(path -> path.getFileName() != null &&
+                            path.getFileName().toString().endsWith(".java"))
                     .forEach(path -> {
                         try {
-                            processJavaFile(path.toFile(), rootPath);
+                            processSingleJavaFile(path, rootPath);
                         } catch (IOException | ExecutionException | InterruptedException | TimeoutException e) {
-                            LOGGER.error("Error processing Java file: {}", path.toFile().getAbsolutePath(), e);
-                            throw new RuntimeException("Error processing Java file: " + path.toFile().getAbsolutePath(), e);
+                            LOGGER.error("Error processing Java file: {}", path, e);
+                            throw new RuntimeException("Error processing Java file: " + path, e);
                         }
                     });
         }
-        LOGGER.info("Completed iterating over Java files in {}", dirAbsolutePath);
+        LOGGER.info("Completed iterating over Java files in {}", dirPath);
     }
 
     /**
-     * Processes a Java file using {@link ASHE}.  For each public method in a public class,
-     * the {@link ASHE} {@code run} method is invoked to apply minimization and error correction.
+     * Processes a Java file using {@link ASHE}. For each public method in a public class,
+     * {@link ASHE#run(String, String, String)} is invoked to apply minimization and error correction.
      *
-     * @param javaFile        the Java file to be processed
+     * @param javaFilePath    the path to the Java file to be processed
      * @param projectRootPath the root path of the project, must be a prefix of the javaFile's absolute path
      * @throws IOException          if an I/O error occurs when opening or parsing the file
      * @throws ExecutionException   if {@link ASHE} encounters an error during execution
      * @throws InterruptedException if {@link ASHE}'s execution is interrupted
      * @throws TimeoutException     if {@link ASHE}'s execution takes longer than the allowed time
      */
-    private static void processJavaFile(File javaFile, String projectRootPath)
+    private static void processSingleJavaFile(Path javaFilePath, String projectRootPath)
             throws IOException, ExecutionException, InterruptedException, TimeoutException {
-        String javaFileAbsolutePath = javaFile.getAbsolutePath();
+        String javaFileAbsolutePath = javaFilePath.toAbsolutePath().toString();
 
         LOGGER.info("Processing Java file: {}", javaFileAbsolutePath);
         LOGGER.info("Project root path: {}", projectRootPath);
@@ -81,11 +83,11 @@ public class AsheAutomation {
             throw new IllegalArgumentException(String.format("The project root path %s must be a prefix of the Java file's absolute path %s", projectRootPath, javaFileAbsolutePath));
         }
 
-        CompilationUnit cu = StaticJavaParser.parse(javaFile);
+        CompilationUnit cu = StaticJavaParser.parse(javaFilePath);
 
         // targetFile - the Java file ASHE will target for minimization and error correction
         // Example: edu/njit/jerse/automation/AsheAutomation.java
-        String targetFile = formatRelativePathForJavaFile(javaFile, projectRootPath);
+        String targetFile = formatRelativePathForJavaFile(javaFilePath, projectRootPath);
 
         Optional<String> packageName = cu.getPackageDeclaration()
                 .map(NodeWithName::getNameAsString);
@@ -122,16 +124,17 @@ public class AsheAutomation {
      * Finds the relative path from the project root to the specified Java file. It formats the relative path
      * to use forward slashes and strips out the leading source directory path.
      *
-     * @param javaFile        the file for which the relative path is needed.
+     * @param javaFilePath    the file path for which the relative path is needed
      *                        Example: /absolute/path/src/main/java/com/example/foo/Bar.java
-     * @param projectRootPath the absolute path to the root of the project.
+     * @param projectRootPath the absolute path to the root of the project. This path
+     *                        must be a prefix of the javaFile's absolute path.
      *                        Example: /absolute/path/src/main/java
      * @return the relative path from the project root to the Java file
      * Example of a relative path: com/example/foo/Bar.java
      */
-    private static String formatRelativePathForJavaFile(File javaFile, String projectRootPath) {
+    private static String formatRelativePathForJavaFile(Path javaFilePath, String projectRootPath) {
         Path projectRoot = Paths.get(projectRootPath);
-        Path absoluteFilePath = javaFile.toPath();
+        Path absoluteFilePath = javaFilePath.toAbsolutePath();
 
         String relativePath = projectRoot.relativize(absoluteFilePath).toString();
         relativePath = relativePath.replace(File.separatorChar, '/');
@@ -148,9 +151,9 @@ public class AsheAutomation {
      * Formats a fully qualified method reference that includes the package name, class name, method name,
      * and parameter types. This reference is designed to uniquely identify the method for processing by {@link ASHE}.
      *
-     * @param packageAndClassName the full package path and class name.
+     * @param packageAndClassName the full package path and class name
      *                            Example: com.example.foo.Bar
-     * @param method              the method declaration to identify.
+     * @param method              the method declaration to identify
      *                            Example: main(String[])
      * @return a string that represents the fully qualified method reference
      * Example of a fully qualified method reference: com.example.foo.Bar#main(String[])
@@ -196,12 +199,13 @@ public class AsheAutomation {
         String directoryPath = args[0];
         String projectRootPath = args[1];
 
-        File directory = new File(directoryPath);
-        if (!directory.exists() || !directory.isDirectory()) {
+        Path directory = Paths.get(directoryPath);
+        if (!Files.exists(directory) || !Files.isDirectory(directory)) {
             LOGGER.error("The specified directory does not exist or is not a directory: {}", directoryPath);
             System.exit(1);
         }
 
-        iterateJavaFiles(directory, projectRootPath);
+        processAllJavaFiles(directory, projectRootPath);
+
     }
 }

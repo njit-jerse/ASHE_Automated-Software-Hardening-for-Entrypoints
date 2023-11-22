@@ -1,7 +1,6 @@
 package edu.njit.jerse.automation;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
-import edu.njit.jerse.ashe.ASHE;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
@@ -9,7 +8,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.eclipse.jgit.api.errors.GitAPIException;
 
-import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -21,7 +19,7 @@ import java.util.List;
 // TODO: Add this functionality to the README
 
 /**
- * The {@link RepositoryAutomationEngine} class filnt clones or fetches repositories
+ * The {@code RepositoryAutomationEngine} class clones or fetches repositories
  * listed in a CSV file.  The {@link AsheAutomation} process is run on
  * every Java file within the repositories.
  */
@@ -47,14 +45,14 @@ public class RepositoryAutomationEngine {
      * Processes repositories listed in the given CSV file. This method
      * takes each entry in the CSV file, clones or fetches the corresponding repository,
      * scans it for Java project roots, and runs
-     * {@link AsheAutomation} to process the Java files within ecah project.
+     * {@link AsheAutomation} to process the Java files within each project.
      * <p>
      * The format of the CSV file is as follows:
      * <pre>
      *     Repository, Branch
      *     https://url-to-your-repository.git, your-branch-to-clone
      * </pre>
-     * Each line in the CSV should contain two columns:
+     * Each line in the CSV should contain exactly these two columns, in the given order:
      * <ul>
      *     <li><b>Repository:</b> The URL of the Git repository (ending in '.git')</li>
      *     <li><b>Branch:</b> The name of the branch in the repository to be cloned or fetched</li>
@@ -110,7 +108,7 @@ public class RepositoryAutomationEngine {
 
     /**
      * Processes all repositories specified in the list. Each repository is cloned or fetched,
-     * and then further processed to apply automation routines.
+     * then individually processed with {@link #processSingleRepository(Path, String)}.
      *
      * @param repositories a list of {@code Repository} records
      * @param repoDir      the directory where the repositories will be cloned or fetched
@@ -149,9 +147,9 @@ public class RepositoryAutomationEngine {
         String repoName = extractRepoName(repoUrl);
         Path repoPath = Paths.get(repoDir, repoName).normalize();
         if (Files.exists(repoPath)) {
-            GitUtils.fetchRepository(repoPath.toFile());
+            GitUtils.fetchRepository(repoPath);
         } else {
-            GitUtils.cloneRepository(repoUrl, branch, repoPath.toFile());
+            GitUtils.cloneRepository(repoUrl, branch, repoPath);
         }
         return repoPath;
     }
@@ -169,10 +167,10 @@ public class RepositoryAutomationEngine {
     private static void processSingleRepository(Path repoPath, @Nullable String branch) throws IOException {
         LOGGER.info("Processing repository at: {} for branch: {}", repoPath, branch);
 
-        List<File> projectRoots = ProjectRootFinder.findJavaRoots(repoPath.toFile());
-        for (File projectRoot : projectRoots) {
-            LOGGER.info("Processing project root: " + projectRoot.getPath());
-            AsheAutomation.iterateJavaFiles(projectRoot, projectRoot.getAbsolutePath());
+        List<Path> projectRoots = ProjectRootFinder.findJavaRoots(repoPath);
+        for (Path projectRoot : projectRoots) {
+            LOGGER.info("Processing project root: " + projectRoot.toString());
+            AsheAutomation.processAllJavaFiles(projectRoot, projectRoot.toString());
         }
 
         LOGGER.info("Completed processing repository at: {} for branch: {}", repoPath, branch);

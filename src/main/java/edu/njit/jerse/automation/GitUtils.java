@@ -7,11 +7,11 @@ import org.eclipse.jgit.api.CloneCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 
 /**
- * The {@link GitUtils} class contains static methods for interacting with Git repositories
+ * The {@code GitUtils} class contains static methods for interacting with Git repositories
  * using the JGit library.
  */
 public class GitUtils {
@@ -28,11 +28,11 @@ public class GitUtils {
      *                  be an empty directory.
      * @throws GitAPIException if any error occurs during the cloning process
      */
-    public static void cloneRepository(String repoUrl, @Nullable String branch, File directory) throws GitAPIException {
+    public static void cloneRepository(String repoUrl, @Nullable String branch, Path directory) throws GitAPIException {
         LOGGER.info("Cloning repository: " + repoUrl);
         CloneCommand cloneCommand = Git.cloneRepository()
                 .setURI(repoUrl)
-                .setDirectory(directory);
+                .setDirectory(directory.toFile());
 
         if (branch != null) {
             cloneCommand.setBranch(branch);
@@ -50,9 +50,9 @@ public class GitUtils {
      * @throws IOException     if the local repository path cannot be accessed
      * @throws GitAPIException if any error occurs during the fetch operation
      */
-    public static void fetchRepository(File repoPath) throws IOException, GitAPIException {
+    public static void fetchRepository(Path repoPath) throws IOException, GitAPIException {
         LOGGER.info("Fetching changes for repository: " + repoPath);
-        try (Git git = Git.open(repoPath)) {
+        try (Git git = Git.open(repoPath.toFile())) {
             git.fetch().call();
             LOGGER.info("Fetch completed successfully {}", repoPath);
         }
