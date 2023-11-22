@@ -31,19 +31,15 @@ public class RepositoryAutomationEngine {
      * A record to store repository information.
      */
     private record Repository(
-            /**
-             * The URL of the repository.
-             */
+            /** The URL of the repository. */
             String url,
-            /**
-             * The branch of the repository to be cloned or fetched.
-             */
+            /** The branch of the repository to be cloned or fetched. */
             String branch
     ) {
     }
 
     /**
-     * Reads and processes repositories listed in a specified CSV file. This method
+     * Reads and processes repositories listed in the given CSV file. This method
      * takes each entry in the CSV file, clones or fetches the corresponding repository,
      * and then processes it by scanning for Java project roots. Upon locating a Java project
      * root, the method delegates to {@code AsheAutomation} to process the Java files within.
@@ -60,9 +56,8 @@ public class RepositoryAutomationEngine {
      * </ul>
      * </p>
      *
-     * @param csvFilePath path to the CSV file containing repository URLs and branch names.
-     *                    Each line in the CSV file should correspond to a repository,
-     *                    with 'Repository' and 'Branch' columns as specified above.
+     * @param csvFilePath path to the CSV file containing repository URLs and branch names,
+     *                    in the format specified above.
      * @param repoDir     directory where the repositories will be cloned or fetched
      */
     private static void readAndProcessRepositoriesCsv(String csvFilePath, String repoDir) {
@@ -112,8 +107,7 @@ public class RepositoryAutomationEngine {
      * Processes all repositories specified in the list. Each repository is cloned or fetched,
      * and then further processed to apply automation routines.
      *
-     * @param repositories a list of {@code Repository} records, each containing the 'Repository' URL and the
-     *                     'Branch' name
+     * @param repositories a list of {@code Repository} records
      * @param repoDir      the directory where the repositories will be cloned or fetched
      * @throws GitAPIException if a Git-specific error occurs during the cloning or fetching of the repositories
      * @throws IOException     if an I/O error occurs during the access or manipulation of the repository files
