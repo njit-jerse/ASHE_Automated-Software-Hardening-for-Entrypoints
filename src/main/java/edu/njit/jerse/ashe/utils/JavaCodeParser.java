@@ -96,6 +96,29 @@ public final class JavaCodeParser {
              */
             String parameters
     ) {
+
+        /**
+         * Checks if the method signature is a valid Java method signature.
+         *
+         * @return {@code true} if the method signature contains non-null return type, method name,
+         * and parameters, representing a valid Java method signature; {@code false} otherwise.
+         */
+        public boolean isValid() {
+            boolean isValidSig =
+                    this.returnType() != null &&
+                            this.methodName() != null &&
+                            this.parameters() != null;
+
+            if (isValidSig) {
+                LOGGER.info("Java method signature is valid: returnType={}, methodName={}, parameters={}",
+                        this.returnType(), this.methodName(), this.parameters());
+            } else {
+                LOGGER.warn("Invalid Java method signature detected: returnType={}, methodName={}, parameters={}",
+                        this.returnType(), this.methodName(), this.parameters());
+            }
+
+            return isValidSig;
+        }
     }
 
     /**
@@ -103,17 +126,18 @@ public final class JavaCodeParser {
      *
      * @param method the method string from which to extract the signature
      * @return {@link MethodSignature} representing the extracted method signature
+     * @throws IllegalArgumentException if the {@link MethodDeclaration} is empty
      */
-    public static MethodSignature extractMethodSignature(String method) {
+    public static MethodSignature extractMethodSignature(String method) throws IllegalArgumentException {
         try {
             CompilationUnit cu = StaticJavaParser.parse(method);
             Optional<MethodDeclaration> methodDeclarationOpt = cu.findFirst(MethodDeclaration.class);
 
             // Explicitly check if the method declaration is present
             if (methodDeclarationOpt.isEmpty()) {
-                errorMessage = "Invalid method string";
+                errorMessage = "Invalid method string: " + method;
                 LOGGER.error(errorMessage);
-                throw new NoSuchElementException(errorMessage);
+                throw new IllegalArgumentException(errorMessage);
             }
 
             MethodDeclaration methodDeclaration = methodDeclarationOpt.get();
@@ -129,16 +153,21 @@ public final class JavaCodeParser {
 
             return new MethodSignature(presence, modifiers, returnType, name, params);
         } catch (ParseProblemException ex) {
-            errorMessage = "Failed to parse method due to syntax error(s): " + ex.getProblems();
-            LOGGER.error(errorMessage);
-            throw new RuntimeException(errorMessage);
+            LOGGER.error("Failed to parse method due to syntax error(s): " + ex.getProblems());
+            throw ex;
         } catch (Exception ex) {
-            errorMessage = "Failed to extract method signature due to an unexpected error: " + ex;
-            LOGGER.error(errorMessage);
-            throw new RuntimeException(errorMessage);
+            LOGGER.error("Failed to extract method signature due to an unexpected error: " + ex);
+            throw ex;
         }
     }
 
+    /**
+     * Determines the presence of modifiers in a method signature.
+     *
+     * @param keywords a list of modifier keywords associated with a method
+     * @return {@code ModifierPresent.ABSENT} if the {@code DEFAULT} modifier is present in the list,
+     * indicating no other modifiers are to be considered. Returns {@code ModifierPresent.PRESENT} otherwise.
+     */
     private static ModifierPresent determineModifierPresence(List<Modifier.Keyword> keywords) {
         return keywords.contains(Modifier.Keyword.DEFAULT) ? ModifierPresent.ABSENT : ModifierPresent.PRESENT;
     }

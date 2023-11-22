@@ -57,7 +57,7 @@ public final class MethodReplacementService {
         Path path = Paths.get(absoluteFilePath);
 
         MethodSignature methodSignature = JavaCodeParser.extractMethodSignature(newMethodCode);
-        if (!isValidMethodSignature(methodSignature)) {
+        if (!methodSignature.isValid()) {
             LOGGER.error("Could not parse the provided method.");
             return false;
         }
@@ -196,30 +196,6 @@ public final class MethodReplacementService {
         }
 
         return result;
-    }
-
-    /**
-     * Checks if the extracted method signature is both complete and conforms to the expected
-     * format of a valid Java method signature.
-     *
-     * @param signature the method signature to be checked
-     * @return {@code true} if the method signature is complete and a valid Java method signature; {@code false} otherwise.
-     */
-    private static boolean isValidMethodSignature(MethodSignature signature) {
-        boolean isValidSig =
-                signature.returnType() != null &&
-                        signature.methodName() != null &&
-                        signature.parameters() != null;
-
-        if (isValidSig) {
-            LOGGER.debug("Java method signature is valid: returnType={}, methodName={}, parameters={}",
-                    signature.returnType(), signature.methodName(), signature.parameters());
-        } else {
-            LOGGER.warn("Invalid Java method signature detected: returnType={}, methodName={}, parameters={}",
-                    signature.returnType(), signature.methodName(), signature.parameters());
-        }
-
-        return isValidSig;
     }
 
     /**
