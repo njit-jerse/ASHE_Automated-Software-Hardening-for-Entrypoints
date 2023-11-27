@@ -28,7 +28,6 @@ import java.util.stream.Collectors;
  */
 public final class MethodReplacementService {
     private static final Logger LOGGER = LogManager.getLogger(MethodReplacementService.class);
-    private static String errorMessage = "";
 
     /**
      * Private constructor to prevent instantiation.
@@ -65,7 +64,7 @@ public final class MethodReplacementService {
         try {
             cu = StaticJavaParser.parse(path);
         } catch (Exception ex) {
-            errorMessage = (ex.getMessage() != null) ? ex.getMessage() : "Unknown error";
+            String errorMessage = (ex.getMessage() != null) ? ex.getMessage() : "Unknown error";
             LOGGER.error("Error while parsing file {}: {}", path, errorMessage);
             return false;
         }
@@ -168,13 +167,14 @@ public final class MethodReplacementService {
      * @return a list of individual parameter definitions split from the input string
      */
     private static List<String> splitParameters(String parameterString) {
+        if (parameterString == null || parameterString.isEmpty()) {
+            // returns an empty list if the parameter string is null or empty
+            return new ArrayList<>();
+        }
+
         List<String> result = new ArrayList<>();
         int depth = 0;
         StringBuilder currentParameter = new StringBuilder();
-
-        if (parameterString == null || parameterString.isEmpty()) {
-            return result;
-        }
 
         for (char c : parameterString.toCharArray()) {
             switch (c) {
@@ -223,7 +223,7 @@ public final class MethodReplacementService {
             }
         }
 
-        errorMessage = "The targeted class declaration was not found in the provided compilation unit.";
+        String errorMessage = "The targeted class declaration was not found in the provided compilation unit.";
         LOGGER.warn(errorMessage);
         throw new IllegalArgumentException(errorMessage);
     }
@@ -303,7 +303,7 @@ public final class MethodReplacementService {
             Files.write(path, cu.toString().getBytes(), StandardOpenOption.TRUNCATE_EXISTING);
             return true;
         } catch (IOException ex) {
-            errorMessage = (ex.getMessage() != null) ? ex.getMessage() : "Unknown error";
+            String errorMessage = (ex.getMessage() != null) ? ex.getMessage() : "Unknown error";
             LOGGER.error("Error writing to file {}: {}", path, errorMessage);
             return false;
         }

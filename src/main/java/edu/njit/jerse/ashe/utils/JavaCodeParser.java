@@ -29,7 +29,6 @@ import java.util.stream.Collectors;
 public final class JavaCodeParser {
     private static final Logger LOGGER = LogManager.getLogger(MethodReplacementService.class);
     private static final Pattern JavaCodeBlockPattern = Pattern.compile("```java(.*?)```", Pattern.DOTALL);
-    private static String errorMessage = "";
 
     /**
      * Private constructor to prevent instantiation.
@@ -126,15 +125,17 @@ public final class JavaCodeParser {
      * @param method the method string from which to extract the signature
      * @return {@link MethodSignature} representing the extracted method signature
      * @throws IllegalArgumentException if the {@link MethodDeclaration} is empty
+     * @throws ParseProblemException    if the method cannot be parsed
      */
-    public static MethodSignature extractMethodSignature(String method) throws IllegalArgumentException {
+    public static MethodSignature extractMethodSignature(String method)
+            throws IllegalArgumentException, ParseProblemException {
         try {
             CompilationUnit cu = StaticJavaParser.parse(method);
             Optional<MethodDeclaration> methodDeclarationOpt = cu.findFirst(MethodDeclaration.class);
 
             // Explicitly check if the method declaration is present
             if (methodDeclarationOpt.isEmpty()) {
-                errorMessage = "Invalid method string: " + method;
+                String errorMessage = "Invalid method string: " + method;
                 LOGGER.error(errorMessage);
                 throw new IllegalArgumentException(errorMessage);
             }
@@ -246,9 +247,10 @@ public final class JavaCodeParser {
      *
      * @param method the entire Java method as a string
      * @return the body of the method as a string
+     * @throws ParseProblemException  if the method cannot be parsed
      * @throws NoSuchElementException if the method declaration or body is not found
      */
-    public static String extractMethodBody(String method) throws NoSuchElementException {
+    public static String extractMethodBody(String method) throws ParseProblemException, NoSuchElementException {
         CompilationUnit cu;
         try {
             cu = StaticJavaParser.parse(method);
@@ -259,7 +261,7 @@ public final class JavaCodeParser {
 
         Optional<MethodDeclaration> methodDeclarationOpt = cu.findFirst(MethodDeclaration.class);
         if (methodDeclarationOpt.isEmpty()) {
-            errorMessage = "Method declaration not found.";
+            String errorMessage = "Method declaration not found.";
             LOGGER.error(errorMessage);
             throw new NoSuchElementException(errorMessage);
         }
@@ -268,7 +270,7 @@ public final class JavaCodeParser {
         Optional<BlockStmt> methodBodyOpt = methodDeclaration.getBody();
 
         if (methodBodyOpt.isEmpty()) {
-            errorMessage = "Method body not found.";
+            String errorMessage = "Method body not found.";
             LOGGER.error(errorMessage);
             throw new NoSuchElementException(errorMessage);
         }
@@ -283,10 +285,11 @@ public final class JavaCodeParser {
      * @param methodName the name of the method you're looking for
      * @return the name of the class or interface containing the specified method
      * @throws IOException            if the file cannot be read
+     * @throws ParseProblemException  if the file cannot be parsed
      * @throws NoSuchElementException if the specified method is not found in the file
      */
     public static ClassOrInterfaceDeclaration extractClassByMethodName(String filePath, String methodName)
-            throws IOException, NoSuchElementException {
+            throws IOException, ParseProblemException, NoSuchElementException {
         CompilationUnit cu;
         try (FileInputStream fis = new FileInputStream(filePath)) {
             cu = StaticJavaParser.parse(fis);
@@ -308,7 +311,7 @@ public final class JavaCodeParser {
                 .findFirst();
 
         if (classOrInterfaceOpt.isEmpty()) {
-            errorMessage = "No class or interface declarations containing the method " +
+            String errorMessage = "No class or interface declarations containing the method " +
                     methodName + " found in file: " + filePath;
             LOGGER.error(errorMessage);
             throw new NoSuchElementException(errorMessage);
