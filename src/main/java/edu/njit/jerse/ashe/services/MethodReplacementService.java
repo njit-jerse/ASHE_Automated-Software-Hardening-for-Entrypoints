@@ -169,7 +169,7 @@ public final class MethodReplacementService {
     private static List<String> splitParameters(String parameterString) {
         if (parameterString == null || parameterString.isEmpty()) {
             // returns an empty list if the parameter string is null or empty
-            return new ArrayList<>();
+            return Collections.emptyList();
         }
 
         List<String> result = new ArrayList<>();
