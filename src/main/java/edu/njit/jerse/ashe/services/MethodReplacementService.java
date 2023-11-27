@@ -12,7 +12,6 @@ import edu.njit.jerse.ashe.utils.JavaCodeParser.ModifierPresent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -47,9 +46,9 @@ public final class MethodReplacementService {
     /**
      * Replaces an existing Java method in the specified file with a new, updated method.
      *
-     * @param absoluteFilePath the absolute path to the Java file containing the method to be replaced.
-     * @param newMethodCode    the new method code to replace the existing method.
-     * @return {@code true} if the replacement operation was successful; {@code false} otherwise.
+     * @param absoluteFilePath the absolute path to the Java file containing the method to be replaced
+     * @param newMethodCode    the new method code to replace the existing method
+     * @return {@code true} if the replacement operation was successful; {@code false} otherwise
      */
     public static boolean replaceMethodInFile(String absoluteFilePath, String className, String newMethodCode) {
         LOGGER.info("Attempting to replace method in file: {}", absoluteFilePath);
@@ -92,10 +91,10 @@ public final class MethodReplacementService {
     /**
      * Replaces a method in the specified class declaration with a new method if it matches the provided method signature.
      *
-     * @param classDecl       The class or interface declaration where the method replacement should be performed.
-     * @param newMethod       The new method declaration that will replace the existing method if a match is found.
-     * @param methodSignature The signature of the method to be replaced. Replacement is done based on this signature.
-     * @return True if a method with the provided signature was found and replaced, otherwise false.
+     * @param classDecl       the class or interface declaration where the method replacement should be performed
+     * @param newMethod       the new method declaration that will replace the existing method if a match is found
+     * @param methodSignature the signature of the method to be replaced. Replacement is done based on this signature
+     * @return {@code true} if a method with the provided signature was found and replaced; {@code false} otherwise
      */
     private static boolean replaceMethodInClassDeclaration(ClassOrInterfaceDeclaration classDecl, MethodDeclaration newMethod, MethodSignature methodSignature) {
         for (MethodDeclaration method : classDecl.getMethods()) {
@@ -119,9 +118,9 @@ public final class MethodReplacementService {
      * 4. Return type - this deviates slightly from the JLS where only parameter types
      *                  are considered for "override-equivalent".
      *
-     * @param method          The method declaration to check against the target signature.
-     * @param targetSignature The target method signature to which the provided method is compared.
-     * @return True if the method matches the target signature, otherwise false.
+     * @param method          the method declaration to check against the target signature
+     * @param targetSignature the target method signature to which the provided method is compared
+     * @return {@code true} if the method matches the target signature; {@code false} otherwise
      * <p>
      * Example Usage:
      * doesMethodSignatureMatch(someMethodDecl, new MethodSignature("methodName", "paramType1, paramType2", "returnType"));
@@ -165,13 +164,17 @@ public final class MethodReplacementService {
      * <p>
      * The method ensures that the split occurs only at the top-level commas, avoiding splits inside generic definitions.
      *
-     * @param parameterString The entire parameter string that needs to be split into individual parameter definitions.
-     * @return A list of individual parameter definitions split from the input string.
+     * @param parameterString the entire parameter string that needs to be split into individual parameter definitions
+     * @return a list of individual parameter definitions split from the input string
      */
     private static List<String> splitParameters(String parameterString) {
         List<String> result = new ArrayList<>();
         int depth = 0;
         StringBuilder currentParameter = new StringBuilder();
+
+        if (parameterString == null || parameterString.isEmpty()) {
+            return result;
+        }
 
         for (char c : parameterString.toCharArray()) {
             switch (c) {
@@ -206,9 +209,11 @@ public final class MethodReplacementService {
      *                  declaration needs to be extracted
      * @param className the name of the class or interface whose declaration is
      *                  to be fetched
-     * @return the declaration of the target class or interface.
+     * @return the declaration of the target class or interface
+     * @throws IllegalArgumentException if the target class declaration is not found
      */
-    private static ClassOrInterfaceDeclaration getClassDeclaration(CompilationUnit cu, String className) {
+    private static ClassOrInterfaceDeclaration getClassDeclaration(CompilationUnit cu, String className)
+            throws IllegalArgumentException {
         List<ClassOrInterfaceDeclaration> classes = cu.findAll(ClassOrInterfaceDeclaration.class);
 
         for (ClassOrInterfaceDeclaration classOrInterface : classes) {
@@ -229,8 +234,10 @@ public final class MethodReplacementService {
      * @param signature     the signature of the method to be created
      * @param newMethodCode the new method code
      * @return the newly constructed {@link MethodDeclaration} object
+     * @throws IllegalArgumentException if the parameter format is invalid
      */
-    private static MethodDeclaration createNewMethodFromSignature(MethodSignature signature, String newMethodCode) {
+    private static MethodDeclaration createNewMethodFromSignature(MethodSignature signature, String newMethodCode)
+            throws IllegalArgumentException {
         LOGGER.info("Creating a new method from the provided signature.");
 
         MethodDeclaration newMethod = new MethodDeclaration();
@@ -288,7 +295,7 @@ public final class MethodReplacementService {
      *
      * @param path the path to the Java file
      * @param cu   the updated compilation unit
-     * @return {@code true} if the write operation was successful; {@code false} otherwise.
+     * @return {@code true} if the write operation was successful; {@code false} otherwise
      */
     private static boolean writeCompilationUnitToFile(Path path, CompilationUnit cu) {
         try {
@@ -305,12 +312,15 @@ public final class MethodReplacementService {
     /**
      * Replaces the original method in the target file with a checked (modified) method.
      *
-     * @param checkedFile The path to the Java file containing the checked (Checker Framework compiled) method.
-     * @param targetFile  The path to the Java file containing the original method to be replaced.
-     * @return true if the method replacement was successful; false otherwise.
-     * @throws FileNotFoundException If any of the files are not found.
+     * @param checkedFile the path to the Java file containing the checked (Checker Framework compiled) method
+     * @param targetFile  the path to the Java file containing the original method to be replaced
+     * @return true if the method replacement was successful; false otherwise
+     * @throws IOException            if an IO error occurs while extracting the class from the checked file
+     * @throws NoSuchElementException if the specified method is not found in the file
+     * @throws RuntimeException       if the original method cannot be replaced in the target file
      */
-    public static boolean replaceOriginalTargetMethod(String checkedFile, String targetFile, String methodName) throws FileNotFoundException {
+    public static boolean replaceOriginalTargetMethod(String checkedFile, String targetFile, String methodName)
+            throws IOException, NoSuchElementException, RuntimeException {
         ClassOrInterfaceDeclaration checkedClass = JavaCodeParser.extractClassByMethodName(checkedFile, methodName);
 
         boolean wasOriginalMethodReplaced = replaceMethodInFile(targetFile, checkedClass.getNameAsString(), checkedClass.toString());

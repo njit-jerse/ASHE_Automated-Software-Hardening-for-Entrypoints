@@ -12,7 +12,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -176,8 +175,8 @@ public final class JavaCodeParser {
      * Extracts and returns the parameters from the provided method declaration
      * as a formatted string.
      *
-     * @param methodDeclaration the method declaration from which to extract the parameters.
-     * @return a formatted string representing the parameters of the method.
+     * @param methodDeclaration the method declaration from which to extract the parameters
+     * @return a formatted string representing the parameters of the method
      */
     private static String extractParameters(MethodDeclaration methodDeclaration) {
         return methodDeclaration.getParameters()
@@ -218,11 +217,11 @@ public final class JavaCodeParser {
      * If the target method string does not match the expected format,
      * this method throws an {@link IllegalArgumentException}.
      *
-     * @param targetMethod the target method string in the format "package.name.ClassName#methodName()".
-     * @return the extracted method name from the provided target method string.
-     * @throws IllegalArgumentException if the targetMethod format is invalid.
+     * @param targetMethod the target method string in the format "package.name.ClassName#methodName()"
+     * @return the extracted method name from the provided target method string
+     * @throws IllegalArgumentException if the targetMethod format is invalid
      */
-    public static String extractMethodName(String targetMethod) {
+    public static String extractMethodName(String targetMethod) throws IllegalArgumentException {
         Pattern pattern = Pattern.compile("#(.*?)\\(");
         Matcher matcher = pattern.matcher(targetMethod);
 
@@ -247,15 +246,15 @@ public final class JavaCodeParser {
      *
      * @param method the entire Java method as a string
      * @return the body of the method as a string
+     * @throws NoSuchElementException if the method declaration or body is not found
      */
-    public static String extractMethodBody(String method) {
+    public static String extractMethodBody(String method) throws NoSuchElementException {
         CompilationUnit cu;
         try {
             cu = StaticJavaParser.parse(method);
         } catch (ParseProblemException ex) {
-            errorMessage = "Failed to parse method: " + ex.getMessage();
-            LOGGER.error(errorMessage);
-            throw new RuntimeException(errorMessage);
+            LOGGER.error("Failed to parse method: " + ex.getMessage());
+            throw ex;
         }
 
         Optional<MethodDeclaration> methodDeclarationOpt = cu.findFirst(MethodDeclaration.class);
@@ -283,21 +282,20 @@ public final class JavaCodeParser {
      * @param filePath   the path to the Java file
      * @param methodName the name of the method you're looking for
      * @return the name of the class or interface containing the specified method
-     * @throws FileNotFoundException if the file cannot be read or if no such method exists
+     * @throws IOException            if the file cannot be read
+     * @throws NoSuchElementException if the specified method is not found in the file
      */
     public static ClassOrInterfaceDeclaration extractClassByMethodName(String filePath, String methodName)
-            throws FileNotFoundException {
+            throws IOException, NoSuchElementException {
         CompilationUnit cu;
         try (FileInputStream fis = new FileInputStream(filePath)) {
             cu = StaticJavaParser.parse(fis);
         } catch (IOException ex) {
-            errorMessage = "Error reading file: " + filePath + " " + ex.getMessage();
-            LOGGER.error(errorMessage);
-            throw new FileNotFoundException(errorMessage);
+            LOGGER.error("Error reading file: " + filePath + " " + ex.getMessage());
+            throw ex;
         } catch (ParseProblemException ex) {
-            errorMessage = "Parse error in file: " + filePath + " " + ex.getMessage();
-            LOGGER.error(errorMessage);
-            throw new RuntimeException(errorMessage);
+            LOGGER.error("Parse error in file: " + filePath + " " + ex.getMessage());
+            throw ex;
         }
 
         List<ClassOrInterfaceDeclaration> classes = cu.findAll(ClassOrInterfaceDeclaration.class);
@@ -313,7 +311,7 @@ public final class JavaCodeParser {
             errorMessage = "No class or interface declarations containing the method " +
                     methodName + " found in file: " + filePath;
             LOGGER.error(errorMessage);
-            throw new FileNotFoundException(errorMessage);
+            throw new NoSuchElementException(errorMessage);
         }
 
         return classOrInterfaceOpt.get();
