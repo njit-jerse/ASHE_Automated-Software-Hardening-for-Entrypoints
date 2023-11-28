@@ -22,8 +22,6 @@ import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-// TODO: Add this functionality to the README
-
 /**
  * The {@code AsheAutomation} class applies {@link ASHE}'s minimization and correction mechanisms to
  * Java files in or under a given directory.
