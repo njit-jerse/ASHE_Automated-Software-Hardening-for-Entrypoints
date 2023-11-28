@@ -30,6 +30,8 @@ import java.util.stream.Stream;
  */
 public class AsheAutomation {
     private static final Logger LOGGER = LogManager.getLogger(AsheAutomation.class);
+
+    // A standard Maven/Gradle project structure
     public static final String JAVA_SOURCE_DIR = "src/main/java";
 
     /**
@@ -139,6 +141,8 @@ public class AsheAutomation {
         String relativePath = projectRoot.relativize(absoluteFilePath).toString();
         relativePath = relativePath.replace(File.separatorChar, '/');
 
+        // Expecting a standard Maven/Gradle project structure
+        // I.E. src/main/java
         if (relativePath.startsWith(JAVA_SOURCE_DIR)) {
             relativePath = relativePath.substring(JAVA_SOURCE_DIR.length());
         }

@@ -16,8 +16,6 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
-// TODO: Add this functionality to the README
-
 /**
  * The {@code RepositoryAutomationEngine} class clones or fetches repositories
  * listed in a CSV file.  The {@link AsheAutomation} process is run on
@@ -77,8 +75,9 @@ public class RepositoryAutomationEngine {
 
     /**
      * Reads a CSV file containing repository information and converts it into a list of
-     * {@link Repository} records. The CSV file must have a header specifying these columns.
-     * This method sets up the CSV format to skip the header record during parsing.
+     * {@link Repository} records. The CSV file must have a header specifying the "Repository"
+     * and "Branch" columns. This method sets up the CSV format to skip the header record
+     * during parsing.
      *
      * @param csvFilePath the file path to the CSV file that contains the repository information
      * @return a list of maps where each map contains the 'Repository' URL and the 'Branch' name
