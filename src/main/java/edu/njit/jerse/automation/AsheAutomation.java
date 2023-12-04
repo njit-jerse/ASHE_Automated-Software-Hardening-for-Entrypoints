@@ -1,10 +1,13 @@
 package edu.njit.jerse.automation;
 
+import java.util.Optional;
+
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.body.BodyDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.TypeDeclaration;
+import com.github.javaparser.ast.nodeTypes.NodeWithName;
 import edu.njit.jerse.ashe.ASHE;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -86,12 +89,8 @@ public class AsheAutomation {
         // Example: edu/njit/jerse/automation/AsheAutomation.java
         String targetFile = formatRelativePathForJavaFile(javaFilePath, projectRootPath);
 
-        if (cu.getPackageDeclaration().isEmpty()) {
-            LOGGER.error("Package declaration not present");
-            throw new IllegalStateException("Package declaration not present");
-        }
-
-        String packageName = cu.getPackageDeclaration().get().getNameAsString();
+        Optional<String> packageName = cu.getPackageDeclaration()
+                .map(NodeWithName::getNameAsString);
 
         // Example: "edu.njit.jerse.automation."
         String packagePrefix = packageName.isEmpty() ? "" : packageName + ".";
