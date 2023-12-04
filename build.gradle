@@ -29,6 +29,7 @@ dependencies {
     implementation group: 'org.apache.commons', name: 'commons-csv', version: '1.10.0'
     implementation group: 'org.eclipse.jgit', name: 'org.eclipse.jgit', version: '6.7.0.202309050840-r'
     implementation group: 'com.google.guava', name: 'guava', version: '32.1.3-jre'
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
 }
 
 test {
@@ -44,9 +45,34 @@ checkerFramework {
     ]
 }
 
+// TODO: This might contain deprecated code that needs updating.
 /* Make Emacs TAGS table */
 task tags(type: Exec) {
   description "Run etags to create an Emacs TAGS table"
   environment PATH: "$System.env.PATH:$buildDir/utils/plume-lib/bin"
   commandLine "bash", "-c", "find src/ -name '*.java' | sort-directory-order | xargs etags"
+}
+
+// TODO: Create a task to run ASHE#main here
+
+// Command to run AsheAutomation#main
+// ./gradlew runAsheAutomation -PmodulePath="/path/to/module" -ProotProjectPath="/path/to/root/project"
+tasks.register('runAsheAutomation', JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass.set('edu.njit.jerse.automation.AsheAutomation')
+    args = [
+            project.findProperty('modulePath'),
+            project.findProperty('rootProjectPath')
+    ]
+}
+
+// Command to run RepositoryAutomationEngine#main
+// ./gradlew runRepositoryAutomation -PrepositoriesCsvPath="/path/to/repositories.csv" -PcloneDirectory="/path/to/clone/directory"
+tasks.register('runRepositoryAutomation', JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass.set('edu.njit.jerse.automation.RepositoryAutomationEngine')
+    args = [
+            project.findProperty('repositoriesCsvPath'),
+            project.findProperty('cloneDirectory')
+    ]
 }

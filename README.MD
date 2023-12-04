@@ -149,8 +149,7 @@ cloning and Java file processing.
 
 - Repository Management: Clones or fetches repositories listed in a provided CSV file.
 - Bulk Processing: Applies AsheAutomation to every Java file within the cloned repositories.
-- Customizable Repository Data: Accepts a CSV file with repository URLs and branch information for
-  targeted processing.
+- Customizable Repository Data: Accepts a CSV file with repository URLs and branch information.
 
 <br/>
 
@@ -161,22 +160,12 @@ cloning and Java file processing.
 /absolute/path/to/project/src/main/java/com/example/foo
 /absolute/path/to/project
 
-### Compiling ASHE
-
-1. **Navigate to project directory:**
-    - Open your terminal and navigate to the project root directory using the `cd` command.
-2. **Compile ASHE:**
-    - Execute the following command:
-      ```bash
-      javac -cp ".:../resources:../../../libs/*" edu/njit/jerse/*.java
-      ```
-
 ### Running AsheAutomation
 
 1. **Execute AsheAutomation:**
-    - After successful compilation, run AsheAutomation using the following command:
+    - Run AsheAutomation using the following Gradle command:
       ```bash
-      java -cp ".:../../../libs/*:../resources" edu.njit.jerse.automation.AsheAutomation "/absolute/path/to/project/src/main/java/com/example/foo" "/absolute/path/to/project"
+      ./gradlew runAsheAutomation -PmodulePath=/path/to/module -ProotProjectPath=/path/to/root/project
       ```
 
 ### Running RepositoryAutomationEngine
@@ -210,9 +199,9 @@ file containing the details of each repository. Follow these steps to create and
    > processing by the RepositoryAutomationEngine.
 
 5. **Execute RepositoryAutomationEngine:**
-    - After successful compilation, run RepositoryAutomationEngine using the following command:
+    - Run RepositoryAutomationEngine using the following Gradle command:
       ```bash
-      java -cp ".:../../../libs/*:../resources" edu.njit.jerse.automation.RepositoryAutomationEngine "/path/to/repositories.csv" "/path/to/clone/directory"
+      ./gradlew runRepositoryAutomation -PrepositoriesCsvPath="/path/to/repositories.csv" -PcloneDirectory="/path/to/clone/directory"
       ```
 
 <br/>
