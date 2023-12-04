@@ -1,7 +1,5 @@
 package edu.njit.jerse.automation;
 
-import java.util.Optional;
-
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.body.BodyDeclaration;
@@ -89,8 +87,10 @@ public class AsheAutomation {
         // Example: edu/njit/jerse/automation/AsheAutomation.java
         String targetFile = formatRelativePathForJavaFile(javaFilePath, projectRootPath);
 
-        Optional<String> packageName = cu.getPackageDeclaration()
-                .map(NodeWithName::getNameAsString);
+        // Get the package name if it exists, otherwise use an empty string
+        String packageName = cu.getPackageDeclaration()
+                .map(NodeWithName::getNameAsString)
+                .orElse("");
 
         // Example: "edu.njit.jerse.automation."
         String packagePrefix = packageName.isEmpty() ? "" : packageName + ".";
