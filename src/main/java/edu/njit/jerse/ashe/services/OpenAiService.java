@@ -17,8 +17,8 @@ import java.util.concurrent.*;
  * This service provides methods for constructing API requests to OpenAI and
  * retrieving API responses using the provided HTTP client.
  */
-public class OpenAIService implements ApiService {
-    private static final Logger LOGGER = LogManager.getLogger(OpenAIService.class);
+public class OpenAiService implements ApiService {
+    private static final Logger LOGGER = LogManager.getLogger(OpenAiService.class);
 
     /**
      * Period (in seconds) after which a log message is emitted indicating the system is
@@ -36,7 +36,7 @@ public class OpenAIService implements ApiService {
      * Default constructor initializes the service with default values for
      * logging period (10 seconds) and response timeout (60 seconds).
      */
-    public OpenAIService() {
+    public OpenAiService() {
         this.gptResponseLoggingPeriod = 10;
         this.gptResponseTimeout = 60;
     }
@@ -48,7 +48,7 @@ public class OpenAIService implements ApiService {
      * @param gptResponseLoggingPeriod period in seconds for logging waiting messages
      * @param gptResponseTimeout maximum duration in seconds to wait for the API response
      */
-    public OpenAIService(long gptResponseLoggingPeriod, long gptResponseTimeout) {
+    public OpenAiService(long gptResponseLoggingPeriod, long gptResponseTimeout) {
         this.gptResponseLoggingPeriod = gptResponseLoggingPeriod;
         this.gptResponseTimeout = gptResponseTimeout;
     }

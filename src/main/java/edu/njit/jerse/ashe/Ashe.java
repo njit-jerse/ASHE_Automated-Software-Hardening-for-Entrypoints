@@ -12,7 +12,7 @@ import java.util.concurrent.TimeoutException;
 // TODO: Throughout the project, logs must be updated to fix any misleading or duplicate messages.
 // TODO: Fix the project, so we do not need to point to resources and libs in the commands.
 /**
- * The {@code ASHE} class orchestrates the correction, minimization, and method
+ * The {@code Ashe} class orchestrates the correction, minimization, and method
  * replacement processes of Java files, leveraging the Specimin tool, Checker
  * Framework, and GPT-aided error correction to refine and enhance Java code.
  * <p>
@@ -50,13 +50,13 @@ import java.util.concurrent.TimeoutException;
  * <p>
  * Example usage:
  * <pre>
- *     ASHE ashe = new ASHE();
+ *     Ashe ashe = new Ashe();
  *     ashe.run(rootPath, targetFilePath, targetMethodName);
  * </pre>
  * </p>
  */
-public class ASHE {
-    private static final Logger LOGGER = LogManager.getLogger(ASHE.class);
+public class Ashe {
+    private static final Logger LOGGER = LogManager.getLogger(Ashe.class);
 
     /**
      * Orchestrates the running of ASHE's functionality by first minimizing
@@ -89,7 +89,7 @@ public class ASHE {
         String speciminTempDir = corrector.minimizeTargetFile(root, targetFile, targetMethod);
         final String sourceFilePath = speciminTempDir + "/" + targetFile;
 
-        boolean errorsReplacedInTargetFile = corrector.fixTargetFileErrorsWithGPT(sourceFilePath, targetMethod);
+        boolean errorsReplacedInTargetFile = corrector.fixTargetFileErrorsWithGpt(sourceFilePath, targetMethod);
         if (!errorsReplacedInTargetFile) {
             if (corrector.checkedFileError(sourceFilePath).isEmpty()) {
                 LOGGER.info("No errors found in the file, no replacements needed.");
@@ -149,7 +149,7 @@ public class ASHE {
         String targetFile = args[1];
         String targetMethod = args[2];
 
-        ASHE ashe = new ASHE();
+        Ashe ashe = new Ashe();
         ashe.run(root, targetFile, targetMethod);
     }
 }

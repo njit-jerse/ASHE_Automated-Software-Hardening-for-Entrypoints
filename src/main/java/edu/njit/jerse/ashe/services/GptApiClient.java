@@ -3,10 +3,10 @@ package edu.njit.jerse.ashe.services;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.njit.jerse.ashe.api.ApiService;
-import edu.njit.jerse.ashe.models.GPTMessage;
-import edu.njit.jerse.ashe.models.GPTModel;
-import edu.njit.jerse.ashe.models.GPTRequest;
-import edu.njit.jerse.ashe.models.GPTResponse;
+import edu.njit.jerse.ashe.models.GptMessage;
+import edu.njit.jerse.ashe.models.GptModel;
+import edu.njit.jerse.ashe.models.GptRequest;
+import edu.njit.jerse.ashe.models.GptResponse;
 import edu.njit.jerse.config.Configuration;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -23,9 +23,9 @@ import java.util.concurrent.TimeoutException;
  * of corrections based on provided prompts. It encapsulates the process of constructing
  * API requests, sending them, and handling the responses.
  */
-public class GPTApiClient {
+public class GptApiClient {
 
-    private static final Logger LOGGER = LogManager.getLogger(OpenAIService.class);
+    private static final Logger LOGGER = LogManager.getLogger(GptApiClient.class);
     Configuration config = Configuration.getInstance();
 
     private final String API_KEY = config.getPropertyValue("llm.api.key");
@@ -35,7 +35,7 @@ public class GPTApiClient {
     private final String GPT_SYSTEM_CONTENT = config.getPropertyValue("gpt.message.system.content");
 
     private final ObjectMapper objectMapper = new ObjectMapper();
-    private final ApiService openAIService = new OpenAIService();
+    private final ApiService openAIService = new OpenAiService();
 
     /**
      * Fetches the GPT model's correction output based on the provided prompt.
@@ -47,7 +47,7 @@ public class GPTApiClient {
      * @throws ExecutionException   if the computation threw an exception
      * @throws TimeoutException     if the wait timed out
      */
-    public String fetchGPTResponse(String prompt)
+    public String fetchGptResponse(String prompt)
             throws IOException, InterruptedException, ExecutionException, TimeoutException {
 
         LOGGER.debug("Fetching GPT correction with prompt: {}", prompt);
@@ -67,15 +67,15 @@ public class GPTApiClient {
      * @param prompt a {@code String} to be provided to GPT for generating responses
      * @return a {@code GPTRequest} object configured with the necessary parameters for the GPT API call
      */
-    private GPTRequest createGptRequestObject(String prompt) {
+    private GptRequest createGptRequestObject(String prompt) {
         LOGGER.debug("Creating GPT request object with prompt: {}", prompt);
 
-        GPTMessage systemMessage = new GPTMessage(GPT_SYSTEM, GPT_SYSTEM_CONTENT);
-        GPTMessage userMessage = new GPTMessage(GPT_USER, prompt);
-        GPTMessage[] messages = new GPTMessage[]{systemMessage, userMessage};
+        GptMessage systemMessage = new GptMessage(GPT_SYSTEM, GPT_SYSTEM_CONTENT);
+        GptMessage userMessage = new GptMessage(GPT_USER, prompt);
+        GptMessage[] messages = new GptMessage[]{systemMessage, userMessage};
 
         LOGGER.debug("GPT request object created successfully.");
-        return new GPTRequest(GPTModel.GPT_4, messages);
+        return new GptRequest(GptModel.GPT_4, messages);
     }
 
     /**
@@ -86,7 +86,7 @@ public class GPTApiClient {
      * @throws JsonProcessingException if processing the JSON content failed
      */
     private String createApiRequestBody(String prompt) throws JsonProcessingException {
-        GPTRequest gptRequest = createGptRequestObject(prompt);
+        GptRequest gptRequest = createGptRequestObject(prompt);
         return objectMapper.writeValueAsString(gptRequest);
     }
 
@@ -128,7 +128,7 @@ public class GPTApiClient {
         ObjectMapper objectMapper = new ObjectMapper();
 
         if (httpResponse.statusCode() == 200) {
-            GPTResponse gptResponse = objectMapper.readValue(httpResponse.body(), GPTResponse.class);
+            GptResponse gptResponse = objectMapper.readValue(httpResponse.body(), GptResponse.class);
             LOGGER.info("Successfully retrieved GPT Prompt response.");
             return gptResponse.choices()[gptResponse.choices().length - 1].message().content();
         } else {
