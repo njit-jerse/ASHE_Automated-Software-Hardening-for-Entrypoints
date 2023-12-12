@@ -1,9 +1,8 @@
 package edu.njit.jerse.ashe.utils;
 
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
-import edu.njit.jerse.ashe.ASHE;
 import edu.njit.jerse.ashe.services.CheckerFrameworkCompiler;
-import edu.njit.jerse.ashe.services.GPTApiClient;
+import edu.njit.jerse.ashe.services.GptApiClient;
 import edu.njit.jerse.ashe.services.MethodReplacementService;
 import edu.njit.jerse.ashe.services.SpeciminTool;
 import edu.njit.jerse.config.Configuration;
@@ -28,7 +27,7 @@ import java.util.regex.Pattern;
  */
 public class JavaCodeCorrector {
 
-    private static final Logger LOGGER = LogManager.getLogger(ASHE.class);
+    private static final Logger LOGGER = LogManager.getLogger(JavaCodeCorrector.class);
 
     Configuration config = Configuration.getInstance();
     private final String PROMPT_START = config.getPropertyValue("gpt.prompt.start");
@@ -45,11 +44,11 @@ public class JavaCodeCorrector {
      * @return true if errors were successfully corrected; false otherwise.
      * @throws IOException, FileNotFoundException, IllegalArgumentException, InterruptedException, ExecutionException, TimeoutException
      */
-    public boolean fixTargetFileErrorsWithGPT(String targetFile, String targetMethod)
+    public boolean fixTargetFileErrorsWithGpt(String targetFile, String targetMethod)
             throws IOException, IllegalArgumentException,
             InterruptedException, ExecutionException, TimeoutException {
 
-        GPTApiClient gptApiClient = new GPTApiClient();
+        GptApiClient gptApiClient = new GptApiClient();
 
         String errorOutput = checkedFileError(targetFile);
         if (errorOutput.isEmpty()) {
@@ -63,7 +62,7 @@ public class JavaCodeCorrector {
             String methodName = JavaCodeParser.extractMethodName(targetMethod);
             ClassOrInterfaceDeclaration checkedClass = JavaCodeParser.extractClassByMethodName(targetFile, methodName);
 
-            String gptCorrection = fetchCorrectionFromGPT(gptApiClient, checkedClass, errorOutput);
+            String gptCorrection = fetchCorrectionFromGpt(gptApiClient, checkedClass, errorOutput);
             if (gptCorrection.isEmpty()) {
                 return false;
             }
@@ -99,7 +98,7 @@ public class JavaCodeCorrector {
      * @throws InterruptedException If the current thread was interrupted while waiting.
      * @throws TimeoutException     If the wait timed out.
      */
-    private String fetchCorrectionFromGPT(GPTApiClient gptApiClient,
+    private String fetchCorrectionFromGpt(GptApiClient gptApiClient,
                                           ClassOrInterfaceDeclaration checkedClass, String errorOutput)
             throws IOException, ExecutionException, InterruptedException, TimeoutException {
 
@@ -111,7 +110,7 @@ public class JavaCodeCorrector {
                 System.lineSeparator() +
                 PROMPT_END;
 
-        String gptResponse = gptApiClient.fetchGPTResponse(prompt);
+        String gptResponse = gptApiClient.fetchGptResponse(prompt);
         String codeBlock = JavaCodeParser.extractJavaCodeBlockFromResponse(gptResponse);
 
         if (codeBlock.isEmpty()) {

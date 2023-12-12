@@ -1,26 +1,30 @@
 package edu.njit.jerse.ashe.models;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 /**
  * Provides details about the token usage for a ChatGPT API request and response.
  * <p>
  * Given the API's billing and computational considerations, tracking token usage is crucial.
  * <p>
- * <strong>Note:</strong> It's important that the field names remain in snake_case for API compatibility.
  */
-public record GPTUsage(
+public record GptUsage(
         /**
          * The number of tokens used in the input prompt.
          */
-        int prompt_tokens,
+        @JsonProperty("prompt_tokens")
+        int promptTokens,
 
         /**
          * The number of tokens used in the API's response or completion.
          */
-        int completion_tokens,
+        @JsonProperty("completion_tokens")
+        int completionTokens,
 
         /**
          * The total number of tokens used, typically the sum of prompt and completion tokens.
          */
-        int total_tokens
+        @JsonProperty("total_tokens")
+        int totalTokens
 ) {
 }

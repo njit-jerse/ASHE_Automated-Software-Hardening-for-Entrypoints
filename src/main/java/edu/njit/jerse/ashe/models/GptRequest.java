@@ -1,10 +1,12 @@
 package edu.njit.jerse.ashe.models;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 /**
  * Represents a request made to the ChatGPT API.
  *
  * <p>
- * Instead of using a composite {@link GPTModel} object, this design choice of explicitly listing out the model
+ * Instead of using a composite {@link GptModel} object, this design choice of explicitly listing out the model
  * parameters in the record offers several advantages:
  * </p>
  *
@@ -15,52 +17,56 @@ package edu.njit.jerse.ashe.models;
  *   <li><strong>API Compatibility:</strong> The ChatGPT API anticipates these parameters at the top level of the request.
  *       This flattened structure ensures the Java representation aligns closely with the JSON payload structure,
  *       facilitating easier serialization.</li>
- *   <li><strong>Flexibility:</strong> Decoupling from the {@link GPTModel} offers greater flexibility to modify
- *       individual parameters without the need to adjust or instantiate new {@link GPTModel} objects.</li>
+ *   <li><strong>Flexibility:</strong> Decoupling from the {@link GptModel} offers greater flexibility to modify
+ *       individual parameters without the need to adjust or instantiate new {@link GptModel} objects.</li>
  * </ul>
  *
  * <p>
  * For a more in-depth explanation of the fields
  * <code>model</code>,
  * <code>temperature</code>,
- * <code>max_tokens</code>,
- * <code>top_p</code>,
- * <code>frequency_penalty</code>,
+ * <code>maxTokens</code>,
+ * <code>topP</code>,
+ * <code>frequencyPenalty</code>,
  * and
- * <code>presence_penalty</code>,
- * please consult the {@link GPTModel} class.
+ * <code>presencePenalty</code>,
+ * please consult the {@link GptModel} class.
  * </p>
  */
-public record GPTRequest(
+public record GptRequest(
         String model,
         double temperature,
-        int max_tokens,
-        double top_p,
-        int frequency_penalty,
-        int presence_penalty,
+        @JsonProperty("max_tokens")
+        int maxTokens,
+        @JsonProperty("top_p")
+        double topP,
+        @JsonProperty("frequency_penalty")
+        int frequencyPenalty,
+        @JsonProperty("presence_penalty")
+        int presencePenalty,
 
         /**
          * An array representing the conversation history with the LLM.
          * Each entry signifies a message in the conversation, allowing the API to understand the context and
          * generate contextually apt responses. Entries can represent 'system', 'user', or 'assistant' messages.
          */
-        GPTMessage[] messages
+        GptMessage[] messages
 ) {
 
     /**
-     * Creates a new GPTRequest with the provided model configuration and messages.
+     * Creates a new GptRequest with the provided model configuration and messages.
      *
-     * @param modelConfig The configuration for the GPT model, encapsulated as a {@link GPTModel}.
-     * @param messages    The conversation history or context as an array of {@link GPTMessage}.
+     * @param modelConfig The configuration for the GPT model, encapsulated as a {@link GptModel}.
+     * @param messages    The conversation history or context as an array of {@link GptMessage}.
      */
-    public GPTRequest(GPTModel modelConfig, GPTMessage[] messages) {
+    public GptRequest(GptModel modelConfig, GptMessage[] messages) {
         this(
                 modelConfig.getModel(),
                 modelConfig.getTemperature(),
-                modelConfig.getMax_tokens(),
-                modelConfig.getTop_p(),
-                modelConfig.getFrequency_penalty(),
-                modelConfig.getPresence_penalty(),
+                modelConfig.getMaxTokens(),
+                modelConfig.getTopP(),
+                modelConfig.getFrequencyPenalty(),
+                modelConfig.getPresencePenalty(),
                 messages
         );
     }

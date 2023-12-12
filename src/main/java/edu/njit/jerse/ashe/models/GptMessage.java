@@ -5,7 +5,7 @@ package edu.njit.jerse.ashe.models;
  * <p>
  * A message encapsulates content either sent to the API as input or received from the API as a response.
  */
-public record GPTMessage(
+public record GptMessage(
         /**
          * The role of the message, typically indicating whether it's a 'system', 'user', or 'assistant' message.
          */

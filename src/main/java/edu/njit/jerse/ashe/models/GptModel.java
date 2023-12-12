@@ -1,14 +1,14 @@
 package edu.njit.jerse.ashe.models;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 /**
  * Represents the various models provided by the ChatGPT API.
  * <p>
  * This enum encapsulates the parameters associated with each model,
  * allowing for easy selection and configuration when making requests to the ChatGPT API.
- * <p>
- * <strong>Note:</strong> It's crucial to maintain field names in snake_case for compatibility with the API.
  */
-public enum GPTModel {
+public enum GptModel {
 
     // Further models can be added as they are released or used
     /*
@@ -46,33 +46,38 @@ public enum GPTModel {
      * The maximum length of the response in terms of tokens.
      * It limits the response length and can be used to manage response verbosity.
      */
-    private final int max_tokens;
+    @JsonProperty("max_tokens")
+    private final int maxTokens;
 
     /**
      * Filters the potential response pool to this percentage of most likely choices.
      * It helps in ensuring the generated response's quality by considering only the top likely outputs.
      */
-    private final double top_p;
+    @JsonProperty("top_p")
+    private final double topP;
 
     /**
      * Adjusts the likelihood of tokens appearing based on their frequency in the model's training data.
      * A negative value discourages the use of frequent tokens, while a positive value encourages their use.
      */
-    private final int frequency_penalty;
+    @JsonProperty("frequency_penalty")
+    private final int frequencyPenalty;
 
     /**
      * Adjusts the likelihood of tokens appearing based on their presence in the input message.
-     * A positive value increases the likelihood of tokens appearing in the input to also appear in the output, and vice versa.
+     * A positive value increases the likelihood of tokens appearing in the input to also appear in the output,
+     * and vice versa.
      */
-    private final int presence_penalty;
+    @JsonProperty("presence_penalty")
+    private final int presencePenalty;
 
-    GPTModel(String model, double temperature, int max_tokens, double top_p, int frequency_penalty, int presence_penalty) {
+    GptModel(String model, double temperature, int maxTokens, double topP, int frequencyPenalty, int presencePenalty) {
         this.model = model;
         this.temperature = temperature;
-        this.max_tokens = max_tokens;
-        this.top_p = top_p;
-        this.frequency_penalty = frequency_penalty;
-        this.presence_penalty = presence_penalty;
+        this.maxTokens = maxTokens;
+        this.topP = topP;
+        this.frequencyPenalty = frequencyPenalty;
+        this.presencePenalty = presencePenalty;
     }
 
     // Accessor methods with their respective descriptions
@@ -84,19 +89,19 @@ public enum GPTModel {
         return temperature;
     }
 
-    public int getMax_tokens() {
-        return max_tokens;
+    public int getMaxTokens() {
+        return maxTokens;
     }
 
-    public double getTop_p() {
-        return top_p;
+    public double getTopP() {
+        return topP;
     }
 
-    public int getFrequency_penalty() {
-        return frequency_penalty;
+    public int getFrequencyPenalty() {
+        return frequencyPenalty;
     }
 
-    public int getPresence_penalty() {
-        return presence_penalty;
+    public int getPresencePenalty() {
+        return presencePenalty;
     }
 }

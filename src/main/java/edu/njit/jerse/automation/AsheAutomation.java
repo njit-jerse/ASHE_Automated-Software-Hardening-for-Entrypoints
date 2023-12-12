@@ -6,7 +6,7 @@ import com.github.javaparser.ast.body.BodyDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.TypeDeclaration;
 import com.github.javaparser.ast.nodeTypes.NodeWithName;
-import edu.njit.jerse.ashe.ASHE;
+import edu.njit.jerse.ashe.Ashe;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * The {@code AsheAutomation} class applies {@link ASHE}'s minimization and correction mechanisms to
+ * The {@code AsheAutomation} class applies {@link Ashe}'s minimization and correction mechanisms to
  * Java files in or under a given directory.
  */
 public class AsheAutomation {
@@ -60,15 +60,15 @@ public class AsheAutomation {
     }
 
     /**
-     * Processes a Java file using {@link ASHE}. For each public method in a public class,
-     * {@link ASHE#run(String, String, String)} is invoked to apply minimization and error correction.
+     * Processes a Java file using {@link Ashe}. For each public method in a public class,
+     * {@link Ashe#run(String, String, String)} is invoked to apply minimization and error correction.
      *
      * @param javaFilePath    the path to the Java file to be processed
      * @param projectRootPath the root path of the project, must be a prefix of the javaFile's absolute path
      * @throws IOException          if an I/O error occurs when opening or parsing the file
-     * @throws ExecutionException   if {@link ASHE} encounters an error during execution
-     * @throws InterruptedException if {@link ASHE}'s execution is interrupted
-     * @throws TimeoutException     if {@link ASHE}'s execution takes longer than the allowed time
+     * @throws ExecutionException   if {@link Ashe} encounters an error during execution
+     * @throws InterruptedException if {@link Ashe}'s execution is interrupted
+     * @throws TimeoutException     if {@link Ashe}'s execution takes longer than the allowed time
      */
     private static void processSingleJavaFile(Path javaFilePath, String projectRootPath)
             throws IOException, ExecutionException, InterruptedException, TimeoutException {
@@ -110,7 +110,7 @@ public class AsheAutomation {
                             // Example: edu.njit.jerse.automation.AsheAutomation#main(String[])
                             String targetMethod = fullyQualifiedMethodReference(packageAndClassName, method);
 
-                            ASHE ashe = new ASHE();
+                            Ashe ashe = new Ashe();
                             ashe.run(projectRootPath, targetFile, targetMethod);
                         }
                     }
@@ -151,7 +151,7 @@ public class AsheAutomation {
 
     /**
      * Formats a fully qualified method reference that includes the package name, class name, method name,
-     * and parameter types. This reference is designed to uniquely identify the method for processing by {@link ASHE}.
+     * and parameter types. This reference is designed to uniquely identify the method for processing by {@link Ashe}.
      *
      * @param packageAndClassName the full package path and class name
      *                            Example: com.example.foo.Bar
@@ -173,7 +173,7 @@ public class AsheAutomation {
     }
 
     /**
-     * The entry point of the application automating {@link ASHE}.
+     * The entry point of the application automating {@link Ashe}.
      *
      * @param args command-line arguments, expected order:
      *             <ol>
