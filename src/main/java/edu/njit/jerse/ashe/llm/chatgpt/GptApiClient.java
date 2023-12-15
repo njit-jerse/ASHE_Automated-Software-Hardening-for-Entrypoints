@@ -29,11 +29,11 @@ public class GptApiClient extends AbstractApiClient {
     private static final Logger LOGGER = LogManager.getLogger(GptApiClient.class);
     Configuration config = Configuration.getInstance();
 
-    private final String API_KEY = config.getPropertyValue("llm.api.key");
-    private final String API_URI = config.getPropertyValue("llm.api.uri");
-    private final String GPT_SYSTEM = config.getPropertyValue("gpt.message.system");
-    private final String GPT_USER = config.getPropertyValue("gpt.message.user");
-    private final String GPT_SYSTEM_CONTENT = config.getPropertyValue("gpt.message.system.content");
+    private final String GPT_API_KEY = config.getPropertyValue("chatgpt.api.key");
+    private final String GPT_API_URI = config.getPropertyValue("chatgpt.api.uri");
+    private final String GPT_SYSTEM = config.getPropertyValue("chatgpt.message.system");
+    private final String GPT_USER = config.getPropertyValue("chatgpt.message.user");
+    private final String GPT_SYSTEM_CONTENT = config.getPropertyValue("chatgpt.message.system.content");
 
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final ApiRequestHandler openAIService = new OpenAiRequestHandler();
@@ -100,7 +100,7 @@ public class GptApiClient extends AbstractApiClient {
      */
     @Override
     public HttpRequest createApiRequest(String apiRequestBody) {
-        return openAIService.apiRequest(API_KEY, API_URI, apiRequestBody);
+        return openAIService.apiRequest(GPT_API_KEY, GPT_API_URI, apiRequestBody);
     }
 
     /**

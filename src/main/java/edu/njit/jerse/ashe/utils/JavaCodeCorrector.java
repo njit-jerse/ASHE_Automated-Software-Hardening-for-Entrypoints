@@ -35,8 +35,9 @@ public class JavaCodeCorrector {
     private static final Logger LOGGER = LogManager.getLogger(JavaCodeCorrector.class);
 
     Configuration config = Configuration.getInstance();
-    private final String PROMPT_START = config.getPropertyValue("gpt.prompt.start");
-    private final String PROMPT_END = config.getPropertyValue("gpt.prompt.end");
+    // TODO: Consider that these prompts might need to change depending on how other LLMs respond to them.
+    private final String PROMPT_START = config.getPropertyValue("llm.prompt.start");
+    private final String PROMPT_END = config.getPropertyValue("llm.prompt.end");
     private static final Pattern TARGET_FILE_PATTERN = Pattern.compile("([a-zA-Z_0-9]+/)*[a-zA-Z_0-9]+\\.java");
     private static final Pattern TARGET_METHOD_PATTERN = Pattern.compile("[a-zA-Z_0-9]+(\\.[a-zA-Z_0-9]+)*#[a-zA-Z_0-9]+\\([^\\)]*\\)");
 

@@ -84,7 +84,7 @@ In our prototype, those three tools are:
     - Create an [API](https://platform.openai.com/account/api-keys) key for the ChatGPT API under View API Keys.
 3. **Add the API key to `config.properties`:**
     - Copy the API key from OpenAI and paste it into the `config.properties` file in the `resources` directory,
-      replacing the `llm.api.key` placeholder.
+      replacing the `chatgpt.api.key` placeholder.
 
 ### Compiling ASHE
 
