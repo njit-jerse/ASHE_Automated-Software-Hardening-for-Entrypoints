@@ -7,10 +7,15 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
+import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 // TODO: Throughout the project, logs must be updated to fix any misleading or duplicate messages.
 // TODO: Fix the project, so we do not need to point to resources and libs in the commands.
+
 /**
  * The {@code Ashe} class orchestrates the correction, minimization, and method
  * replacement processes of Java files, leveraging the Specimin tool, Checker
@@ -75,35 +80,37 @@ public class Ashe {
      *                         <li>"com.example.package.MyClass#myMethod(ParamType1, ParamType2)".</li>
      *                         <li>"com.example.package.MyClass#myMethod()". If the method has no parameters.</li>
      *                     </ul>
+     * @param model        the model to be used for error correction
      * @throws IOException          if an I/O error occurs during file operations
      * @throws ExecutionException   if an exception was thrown during task execution
      * @throws InterruptedException if the current thread was interrupted while waiting
      * @throws TimeoutException     if a timeout was encountered during task execution
      */
-    public void run(String root, String targetFile, String targetMethod)
+    public void run(String root, String targetFile, String targetMethod, String model)
             throws IOException, ExecutionException, InterruptedException, TimeoutException {
         LOGGER.info("Running ASHE...");
 
         JavaCodeCorrector corrector = new JavaCodeCorrector();
 
         String speciminTempDir = corrector.minimizeTargetFile(root, targetFile, targetMethod);
-        final String sourceFilePath = speciminTempDir + "/" + targetFile;
+        final String sourceFilePath = String.valueOf(Paths.get(speciminTempDir, targetFile));
 
-        boolean errorsReplacedInTargetFile = corrector.fixTargetFileErrorsWithGpt(sourceFilePath, targetMethod);
+        boolean errorsReplacedInTargetFile = corrector.fixTargetFileErrorsWithModel(sourceFilePath, targetMethod, model);
+
         if (!errorsReplacedInTargetFile) {
             if (corrector.checkedFileError(sourceFilePath).isEmpty()) {
                 LOGGER.info("No errors found in the file, no replacements needed.");
                 LOGGER.info("Exiting...");
                 return;
-            } else {
-                LOGGER.error("Errors were found but not replaced with GPT response.");
-                throw new RuntimeException("Errors were not replaced with GPT response.");
             }
+
+            LOGGER.error("Errors were found but not replaced with {} response.", model);
+            throw new RuntimeException("Errors were not replaced with " + model + " response.");
         }
-        LOGGER.info("Errors replaced with GPT response successfully.");
+        LOGGER.info("Errors replaced with {} response successfully.", model);
 
         String methodName = JavaCodeParser.extractMethodName(targetMethod);
-        String originalFilePath = root + "/" + targetFile;
+        final String originalFilePath = String.valueOf(Paths.get(root, targetFile));
         boolean isOriginalMethodReplaced = MethodReplacementService.replaceOriginalTargetMethod(sourceFilePath, originalFilePath, methodName);
 
         if (!isOriginalMethodReplaced) {
@@ -131,6 +138,11 @@ public class Ashe {
      *                 <li>
      *                     name and parameter types of the target method within the Java file
      *                 </li>
+     *                 <li>
+     *                     LLM argument - "gpt-4" or "manual"
+     *                     - gpt-4 will run the GPT-4 model
+     *                     - manual will run the manual response the user provides in predefined_responses.txt
+     *                 </li>
      *             </ol>
      * @throws IOException          if an I/O error occurs during file operations
      * @throws ExecutionException   if an exception was thrown during task execution
@@ -139,9 +151,9 @@ public class Ashe {
      */
     public static void main(String[] args)
             throws IOException, ExecutionException, InterruptedException, TimeoutException {
-        if (args.length != 3) {
-            LOGGER.error("Invalid number of arguments provided.");
-            throw new IllegalArgumentException("Invalid number of arguments provided.");
+        if (args.length != 4) {
+            LOGGER.error("Invalid number of arguments provided. Expected arguments: root, targetFile, targetMethod, model. Provided arguments: {}.", Arrays.toString(args));
+            throw new IllegalArgumentException("Invalid number of arguments provided. Expected arguments: root, targetFile, targetMethod, model. Provided arguments: " + Arrays.toString(args) + ".");
         }
 
         // Specimin arguments
@@ -149,7 +161,18 @@ public class Ashe {
         String targetFile = args[1];
         String targetMethod = args[2];
 
+        // LLM argument - either gpt-4 or manual (for now)
+        String model = args[3];
+
+        // TODO: Add more models here.
+        // Example: Arrays.asList("llama", "palm", "grok");
+        Set<String> models = new HashSet<>(Arrays.asList("gpt-4", "manual"));
+        if (!models.contains(model)) {
+            LOGGER.error("Invalid model argument provided: " + model);
+            throw new IllegalArgumentException("Invalid model argument provided: " + model);
+        }
+
         Ashe ashe = new Ashe();
-        ashe.run(root, targetFile, targetMethod);
+        ashe.run(root, targetFile, targetMethod, model);
     }
 }

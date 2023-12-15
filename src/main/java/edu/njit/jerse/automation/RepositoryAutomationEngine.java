@@ -13,8 +13,11 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 
 /**
  * The {@code RepositoryAutomationEngine} class clones or fetches repositories
@@ -25,7 +28,9 @@ public class RepositoryAutomationEngine {
 
     private static final Logger LOGGER = LogManager.getLogger(RepositoryAutomationEngine.class);
 
-    /** A record to store repository information. */
+    /**
+     * A record to store repository information.
+     */
     private record Repository(
             /** The URL of the repository. */
             String url,
@@ -39,6 +44,9 @@ public class RepositoryAutomationEngine {
         }
     }
 
+    // TODO: Do we want to consider adding the LLM model in the CSV file?
+    // TODO: Users would be able to specify the model to use for each repository.
+    // TODO: This would be beneficial if we wanted to run multiple different models on the same repository.
     /**
      * Processes repositories listed in the given CSV file. This method
      * takes each entry in the CSV file, clones or fetches the corresponding repository,
@@ -61,11 +69,11 @@ public class RepositoryAutomationEngine {
      *                    in the format specified above.
      * @param repoDir     directory where the repositories will be cloned or fetched
      */
-    private static void readAndProcessRepositoriesCsv(String csvFilePath, String repoDir) {
+    private static void readAndProcessRepositoriesCsv(String csvFilePath, String repoDir, String model) {
         LOGGER.info("Starting to process CSV file: {}", csvFilePath);
         try {
             List<Repository> repositories = readRepositoriesFromCsv(csvFilePath);
-            processAllRepositories(repositories, repoDir);
+            processAllRepositories(repositories, repoDir, model);
         } catch (Exception e) {
             LOGGER.error("Error processing CSV file: {}", csvFilePath, e);
             throw new RuntimeException("Error processing CSV file: " + csvFilePath, e);
@@ -107,14 +115,15 @@ public class RepositoryAutomationEngine {
 
     /**
      * Processes all repositories specified in the list. Each repository is cloned or fetched,
-     * then individually processed with {@link #processSingleRepository(Path, String)}.
+     * then individually processed with {@link #processSingleRepository(Path, String, String)}.
      *
      * @param repositories a list of {@code Repository} records
      * @param repoDir      the directory where the repositories will be cloned or fetched
+     * @param model        the large language model to use
      * @throws GitAPIException if a Git-specific error occurs during the cloning or fetching of the repositories
      * @throws IOException     if an I/O error occurs during the access or manipulation of the repository files
      */
-    private static void processAllRepositories(List<Repository> repositories, String repoDir)
+    private static void processAllRepositories(List<Repository> repositories, String repoDir, String model)
             throws GitAPIException, IOException {
         int numOfRepositories = repositories.size();
         LOGGER.info("Starting to process {} repositories", numOfRepositories);
@@ -123,7 +132,7 @@ public class RepositoryAutomationEngine {
             String branch = repository.branch();
 
             Path repoPath = cloneOrFetchRepository(repoUrl, branch, repoDir);
-            processSingleRepository(repoPath, branch);
+            processSingleRepository(repoPath, branch, model);
         }
         LOGGER.info("Completed processing {} repositories", numOfRepositories);
     }
@@ -163,13 +172,13 @@ public class RepositoryAutomationEngine {
      * @throws IOException if an I/O error occurs while accessing the file system
      */
     @SuppressWarnings("nullness:argument")  // Log4J needs to be annotated for nullness
-    private static void processSingleRepository(Path repoPath, @Nullable String branch) throws IOException {
+    private static void processSingleRepository(Path repoPath, @Nullable String branch, String model) throws IOException {
         LOGGER.info("Processing repository at: {} for branch: {}", repoPath, branch);
 
         List<Path> projectRoots = ProjectRootFinder.findJavaRoots(repoPath);
         for (Path projectRoot : projectRoots) {
             LOGGER.info("Processing project root: " + projectRoot.toString());
-            AsheAutomation.processAllJavaFiles(projectRoot, projectRoot.toString());
+            AsheAutomation.processAllJavaFiles(projectRoot, projectRoot.toString(), model);
         }
 
         LOGGER.info("Completed processing repository at: {} for branch: {}", repoPath, branch);
@@ -216,16 +225,33 @@ public class RepositoryAutomationEngine {
      *             <ol>
      *                 <li>Path to the repositories CSV file.</li>
      *                 <li>Directory for cloning repositories.</li>
+     *                 <li>
+     *                     LLM argument - "gpt-4" or "manual"
+     *                     - gpt-4 will run the GPT-4 model
+     *                     - manual will run the manual response the user provides in predefined_responses.txt
+     *                 </li>
      *             </ol>
      */
     public static void main(String[] args) {
-        if (args.length != 2) {
-            LOGGER.error("Provide 2 arguments: the repositories CSV file and the directory in which to clone repositories.");
+        if (args.length != 3) {
+            LOGGER.error("Provide 3 arguments: the repositories CSV file, the directory in which to clone repositories, and the large language model to use.");
             System.exit(1);
         }
 
         String csvFilePath = args[0];
         String repoDir = args[1];
-        readAndProcessRepositoriesCsv(csvFilePath, repoDir);
+
+        // LLM argument - either gpt-4 or manual (for now)
+        String model = args[2];
+
+        // TODO: Add more models here.
+        // Example: Arrays.asList("llama", "palm", "grok");
+        Set<String> models = new HashSet<>(Arrays.asList("gpt-4", "manual"));
+        if (!models.contains(model)) {
+            LOGGER.error("Invalid model argument provided: " + model);
+            throw new IllegalArgumentException("Invalid model argument provided: " + model);
+        }
+
+        readAndProcessRepositoriesCsv(csvFilePath, repoDir, model);
     }
 }

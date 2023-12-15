@@ -88,6 +88,7 @@ In our prototype, those three tools are:
 
 ### Compiling ASHE
 
+> 🔴 **Important Note:** This will be changing to a Gradle build.
 1. **Navigate to project directory:**
     - Open your terminal and navigate to the project root directory using the `cd` command.
 2. **Compile ASHE:**
@@ -99,10 +100,11 @@ In our prototype, those three tools are:
 ### Running ASHE
 
 1. **Execute ASHE:**
+    - > 🔴 **Important Note:** This will be changing to a Gradle build.
     - After successful compilation, run ASHE using the following command:
-      ```bash
-      java -cp ".:../../../libs/*:../resources" edu.njit.jerse.ashe.ASHE "/root/path/to/your/targeted/project" "path/to/targetFile/Example.java" "com.example.Example#foo()"
-      ```
+       ```bash
+       java -cp ".:../../../libs/*:../resources" edu.njit.jerse.ashe.ASHE "/root/path/to/your/targeted/project" "path/to/targetFile/Example.java" "com.example.Example#foo()" "llm-model"
+       ```
 
 **Command Arguments:**
 
@@ -113,6 +115,8 @@ In our prototype, those three tools are:
 - **--targetMethod:** Target method to preserve. Format:
   `class.fully.qualified.Name#methodName(Param1Type, Param2Type, ...)`.
     - Example: `com.example.Example#foo()`
+- **--llm:** Language model to use. Currently, only ChatGPT-4 and manual responses are supported.
+    - Example: `gpt-4` or `manual`
 
 ### Logging
 
@@ -162,10 +166,14 @@ cloning and Java file processing.
 
 ### Running AsheAutomation
 
-1. **Execute AsheAutomation:**
+1. **Choose an LLM:**
+    - To use ChatGPT-4, pass `gpt-4` through the arguments.
+    - More LLMs will be added in the future.
+   
+2. **Execute AsheAutomation:**
     - Run AsheAutomation using the following Gradle command:
       ```bash
-      ./gradlew runAsheAutomation -PmodulePath=/path/to/module -ProotProjectPath=/path/to/root/project
+      ./gradlew runAsheAutomation -PmodulePath="/path/to/module" -ProotProjectPath="/path/to/root/project" -Pmodel="llm-model"
       ```
 
 ### Running RepositoryAutomationEngine
@@ -198,10 +206,14 @@ file containing the details of each repository. Follow these steps to create and
    > 🔴 Important Note: It is crucial to adhere to the specified format for the CSV file to ensure proper
    > processing by the RepositoryAutomationEngine.
 
-5. **Execute RepositoryAutomationEngine:**
+5. **Choose an LLM:**
+   - To use ChatGPT-4, pass `gpt-4` through the arguments.
+   - More LLMs will be added in the future.
+
+6. **Execute RepositoryAutomationEngine:**
     - Run RepositoryAutomationEngine using the following Gradle command:
       ```bash
-      ./gradlew runRepositoryAutomation -PrepositoriesCsvPath="/path/to/repositories.csv" -PcloneDirectory="/path/to/clone/directory"
+      ./gradlew runRepositoryAutomation -PrepositoriesCsvPath="/path/to/repositories.csv" -PcloneDirectory="/path/to/clone/directory" -Pmodel="llm-model"
       ```
 
 <br/>

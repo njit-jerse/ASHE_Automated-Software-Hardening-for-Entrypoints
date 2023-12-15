@@ -22,7 +22,7 @@ class AsheAutomationTest {
         Path javaFile2 = createFile(tempDir, "Test2.java");
         Path txtFile1 = createFile(tempDir, "Test1.txt");
 
-        AsheAutomation.processAllJavaFiles(tempDir, tempDir.toString());
+        AsheAutomation.processAllJavaFiles(tempDir, tempDir.toString(), "manual");
     }
 
     @Test
@@ -30,14 +30,14 @@ class AsheAutomationTest {
         Path txtFile = createFile(tempDir, "test.txt");
         long lastModifiedTxtFile = Files.getLastModifiedTime(txtFile).toMillis();
 
-        AsheAutomation.processAllJavaFiles(tempDir, tempDir.toString());
+        AsheAutomation.processAllJavaFiles(tempDir, tempDir.toString(), "manual");
 
         assertEquals(lastModifiedTxtFile, Files.getLastModifiedTime(txtFile).toMillis());
     }
 
     @Test
     void shouldHandleEmptyDirectory() throws Exception {
-        AsheAutomation.processAllJavaFiles(tempDir, tempDir.toString());
+        AsheAutomation.processAllJavaFiles(tempDir, tempDir.toString(), "manual");
 
         assertTrue(true);
     }

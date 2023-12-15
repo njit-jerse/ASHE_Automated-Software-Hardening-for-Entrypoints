@@ -15,6 +15,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
@@ -31,15 +34,16 @@ public class AsheAutomation {
     public static final String JAVA_SOURCE_DIR = "src/main/java";
 
     /**
-     * Calls the {@link #processSingleJavaFile(Path, String)} method on each Java file in or under
+     * Calls the {@link #processSingleJavaFile(Path, String, String)} method on each Java file in or under
      * the given directory.
      *
      * @param dirPath  the path to the directory to iterate over
      * @param rootPath the root path of the project, used for determining the relative
      *                 path of each Java file within the project structure
+     * @param model    the model to use for error correction
      * @throws IOException if an I/O error occurs while accessing the directory
      */
-    public static void processAllJavaFiles(Path dirPath, String rootPath) throws IOException {
+    public static void processAllJavaFiles(Path dirPath, String rootPath, String model) throws IOException {
         LOGGER.info("Iterating over Java files in {}", dirPath);
 
         try (Stream<Path> paths = Files.walk(dirPath)) {
@@ -49,7 +53,7 @@ public class AsheAutomation {
                             path.getFileName().toString().endsWith(".java"))
                     .forEach(path -> {
                         try {
-                            processSingleJavaFile(path, rootPath);
+                            processSingleJavaFile(path, rootPath, model);
                         } catch (IOException | ExecutionException | InterruptedException | TimeoutException e) {
                             LOGGER.error("Error processing Java file: {}", path, e);
                             throw new RuntimeException("Error processing Java file: " + path, e);
@@ -61,7 +65,7 @@ public class AsheAutomation {
 
     /**
      * Processes a Java file using {@link Ashe}. For each public method in a public class,
-     * {@link Ashe#run(String, String, String)} is invoked to apply minimization and error correction.
+     * {@link Ashe#run(String, String, String, String)} is invoked to apply minimization and error correction.
      *
      * @param javaFilePath    the path to the Java file to be processed
      * @param projectRootPath the root path of the project, must be a prefix of the javaFile's absolute path
@@ -70,7 +74,7 @@ public class AsheAutomation {
      * @throws InterruptedException if {@link Ashe}'s execution is interrupted
      * @throws TimeoutException     if {@link Ashe}'s execution takes longer than the allowed time
      */
-    private static void processSingleJavaFile(Path javaFilePath, String projectRootPath)
+    private static void processSingleJavaFile(Path javaFilePath, String projectRootPath, String model)
             throws IOException, ExecutionException, InterruptedException, TimeoutException {
         String javaFileAbsolutePath = javaFilePath.toAbsolutePath().toString();
 
@@ -111,7 +115,7 @@ public class AsheAutomation {
                             String targetMethod = fullyQualifiedMethodReference(packageAndClassName, method);
 
                             Ashe ashe = new Ashe();
-                            ashe.run(projectRootPath, targetFile, targetMethod);
+                            ashe.run(projectRootPath, targetFile, targetMethod, model);
                         }
                     }
                 }
@@ -188,18 +192,34 @@ public class AsheAutomation {
      *                     files being processed.
      *                     Example: /absolute/path/to/project
      *                 </li>
+     *                 <li>
+     *                     LLM argument - "gpt-4" or "manual"
+     *                     - gpt-4 will run the GPT-4 model
+     *                     - manual will run the manual response the user provides in predefined_responses.txt
+     *                 </li>
      *             </ol>
      * @throws IOException if an I/O error occurs while accessing the directory
      */
     public static void main(String[] args)
             throws IOException {
-        if (args.length != 2) {
-            LOGGER.error("Invalid number of arguments. Expected 2 arguments: <Directory Path> <Project Root Path>");
+        if (args.length != 3) {
+            LOGGER.error("Invalid number of arguments. Expected 3 arguments: <Directory Path> <Project Root Path> <LLM>");
             System.exit(1);
         }
 
         String directoryPath = args[0];
         String projectRootPath = args[1];
+
+        // LLM argument - either gpt-4 or manual (for now)
+        String model = args[2];
+
+        // TODO: Add more models here.
+        // Example: Arrays.asList("llama", "palm", "grok");
+        Set<String> models = new HashSet<>(Arrays.asList("gpt-4", "manual"));
+        if (!models.contains(model)) {
+            LOGGER.error("Invalid model argument provided: " + model);
+            throw new IllegalArgumentException("Invalid model argument provided: " + model);
+        }
 
         Path directory = Paths.get(directoryPath);
         if (!Files.exists(directory) || !Files.isDirectory(directory)) {
@@ -207,7 +227,6 @@ public class AsheAutomation {
             System.exit(1);
         }
 
-        processAllJavaFiles(directory, projectRootPath);
-
+        processAllJavaFiles(directory, projectRootPath, model);
     }
 }

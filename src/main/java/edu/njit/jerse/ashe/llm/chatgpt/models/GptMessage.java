@@ -1,4 +1,4 @@
-package edu.njit.jerse.ashe.models;
+package edu.njit.jerse.ashe.llm.chatgpt.models;
 
 /**
  * Represents a message to or from the ChatGPT API.

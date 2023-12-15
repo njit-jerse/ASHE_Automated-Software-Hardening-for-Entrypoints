@@ -1,4 +1,4 @@
-package edu.njit.jerse.ashe.models;
+package edu.njit.jerse.ashe.llm.chatgpt.models;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
