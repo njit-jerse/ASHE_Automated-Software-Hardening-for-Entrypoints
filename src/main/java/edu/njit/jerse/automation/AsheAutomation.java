@@ -7,6 +7,8 @@ import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.TypeDeclaration;
 import com.github.javaparser.ast.nodeTypes.NodeWithName;
 import edu.njit.jerse.ashe.Ashe;
+import edu.njit.jerse.ashe.llm.openai.models.GptModel;
+import edu.njit.jerse.ashe.utils.ModelValidator;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -16,8 +18,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
@@ -114,8 +114,7 @@ public class AsheAutomation {
                             // Example: edu.njit.jerse.automation.AsheAutomation#main(String[])
                             String targetMethod = fullyQualifiedMethodReference(packageAndClassName, method);
 
-                            Ashe ashe = new Ashe();
-                            ashe.run(projectRootPath, targetFile, targetMethod, model);
+                            Ashe.run(projectRootPath, targetFile, targetMethod, model);
                         }
                     }
                 }
@@ -182,44 +181,41 @@ public class AsheAutomation {
      * @param args command-line arguments, expected order:
      *             <ol>
      *                 <li>
-     *                     The absolute path to the directory containing Java files to be processed.
+     *                     the absolute path to the directory containing Java files to be processed
      *                     Example: /absolute/path/to/project/src/main/java/com/example/foo
      *                 </li>
      *                 <li>
-     *                     The absolute root path of the project, which is used to determine the relative paths
+     *                     the absolute root path of the project, which is used to determine the relative paths
      *                     of Java files during processing. This path is used as a reference to calculate the relative
      *                     paths for Java files and should be a common ancestor in the directory hierarchy for all Java
      *                     files being processed.
      *                     Example: /absolute/path/to/project
      *                 </li>
-     *                 <li>
-     *                     LLM argument - "gpt-4" or "manual"
-     *                     - gpt-4 will run the GPT-4 model
-     *                     - manual will run the manual response the user provides in predefined_responses.txt
+     *                 <li>optional LLM argument:
+     *                     <ul>
+     *                         <li>"gpt-4" to run the {@link GptModel#GPT_4} model</li>
+     *                         <li>"mock" to run the mock response defined in predefined_responses.txt</li>
+     *                         <li>if this argument is omitted, a default model will be used ({@link GptModel#GPT_4})</li>
+     *                     </ul>
      *                 </li>
      *             </ol>
      * @throws IOException if an I/O error occurs while accessing the directory
      */
     public static void main(String[] args)
             throws IOException {
-        if (args.length != 3) {
-            LOGGER.error("Invalid number of arguments. Expected 3 arguments: <Directory Path> <Project Root Path> <LLM>");
-            System.exit(1);
+        if (args.length < 2 || args.length > 3) {
+            String errorMessage = String.format(
+                    "Invalid number of arguments: expected 2 or 3, but received %d. " +
+                            "Required: 1) Directory Path, 2) Project Root Path. " +
+                            "Optional: 3) Model name (LLM). Provided arguments: %s",
+                    args.length, Arrays.toString(args));
+
+            LOGGER.error(errorMessage);
+            throw new IllegalArgumentException(errorMessage);
         }
 
         String directoryPath = args[0];
         String projectRootPath = args[1];
-
-        // LLM argument - either gpt-4 or manual (for now)
-        String model = args[2];
-
-        // TODO: Add more models here.
-        // Example: Arrays.asList("llama", "palm", "grok");
-        Set<String> models = new HashSet<>(Arrays.asList("gpt-4", "manual"));
-        if (!models.contains(model)) {
-            LOGGER.error("Invalid model argument provided: " + model);
-            throw new IllegalArgumentException("Invalid model argument provided: " + model);
-        }
 
         Path directory = Paths.get(directoryPath);
         if (!Files.exists(directory) || !Files.isDirectory(directory)) {
@@ -227,6 +223,14 @@ public class AsheAutomation {
             System.exit(1);
         }
 
+        // If no model is provided, use the default model.
+        if (args.length == 2) {
+            processAllJavaFiles(directory, projectRootPath, ModelValidator.getDefaultModel());
+            return;
+        }
+
+        String model = args[2];
+        ModelValidator.validateModel(model);
         processAllJavaFiles(directory, projectRootPath, model);
     }
 }

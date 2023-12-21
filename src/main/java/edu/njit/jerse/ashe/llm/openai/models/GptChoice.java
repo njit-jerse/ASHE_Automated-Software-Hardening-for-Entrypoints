@@ -1,5 +1,6 @@
-package edu.njit.jerse.ashe.llm.chatgpt.models;
+package edu.njit.jerse.ashe.llm.openai.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
@@ -9,6 +10,10 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * This record captures one individual choice with its details.
  * <p>
  */
+// The JsonIgnoreProperties annotation instructs Jackson to ignore any unknown properties in the JSON response.
+// When deserializing JSON to this Java record, if the JSON contains fields that are not
+// present in this record, they will be ignored instead of causing an error.
+@JsonIgnoreProperties(ignoreUnknown = true)
 public record GptChoice(
         /**
          * The position or ranking of this choice among other potential outputs provided by the API.

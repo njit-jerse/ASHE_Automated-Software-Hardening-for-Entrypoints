@@ -1,10 +1,10 @@
 package edu.njit.jerse.ashe.utils;
 
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
-import edu.njit.jerse.ashe.llm.manual.ManualResponseClient;
+import edu.njit.jerse.ashe.llm.mock.MockResponseClient;
 import edu.njit.jerse.ashe.llm.api.ApiClient;
 import edu.njit.jerse.ashe.services.CheckerFrameworkCompiler;
-import edu.njit.jerse.ashe.llm.chatgpt.GptApiClient;
+import edu.njit.jerse.ashe.llm.openai.GptApiClient;
 import edu.njit.jerse.ashe.services.MethodReplacementService;
 import edu.njit.jerse.ashe.services.SpeciminTool;
 import edu.njit.jerse.config.Configuration;
@@ -57,10 +57,11 @@ public class JavaCodeCorrector {
 
         ApiClient apiClient = switch (model) {
             case "gpt-4" -> new GptApiClient();
+            // TODO: Add these LLM APIs to ASHE and uncomment them here.
             // case "llama" -> new LlamaApiClient();
             // case "palm" -> new PalmApiClient();
             // case "grok" -> new GrokApiClient();
-            case "manual" -> new ManualResponseClient();
+            case "mock" -> new MockResponseClient();
             default -> throw new IllegalStateException("Unexpected value: " + model);
         };
 

@@ -1,4 +1,4 @@
-package edu.njit.jerse.ashe.llm.manual;
+package edu.njit.jerse.ashe.llm.mock;
 
 import edu.njit.jerse.ashe.llm.api.AbstractApiClient;
 import edu.njit.jerse.config.Configuration;
@@ -10,12 +10,12 @@ import java.nio.file.Paths;
 /**
  * A client for providing predefined responses for API requests.
  * This client does not make actual API calls but rather returns a response from a predefined file.
- * It is useful for scenarios where a manual, static response is needed for testing.
+ * It is useful for scenarios where a mock, static response is needed for testing.
  */
-public class ManualResponseClient extends AbstractApiClient {
+public class MockResponseClient extends AbstractApiClient {
 
     private final Configuration config = Configuration.getInstance();
-    private final String predefinedResponseFile = config.getPropertyValue("manual.response.file");
+    private final String predefinedResponseFile = config.getPropertyValue("mock.response.file");
 
     /**
      * Fetches a predefined response for an API based on the provided input and model.
@@ -26,6 +26,7 @@ public class ManualResponseClient extends AbstractApiClient {
      * @return a {@code String} representing the content of the predefined response file
      * @throws IOException if there's an error reading the file
      */
+    @Override
     public String fetchApiResponse(String prompt, String model)
             throws IOException {
         return readResponseFromFile(predefinedResponseFile);

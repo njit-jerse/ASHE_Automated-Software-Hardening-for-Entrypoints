@@ -1,4 +1,4 @@
-package edu.njit.jerse.ashe.llm.chatgpt.models;
+package edu.njit.jerse.ashe.llm.openai.models;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 

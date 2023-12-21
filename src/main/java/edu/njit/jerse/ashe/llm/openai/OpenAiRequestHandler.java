@@ -1,4 +1,4 @@
-package edu.njit.jerse.ashe.llm.chatgpt;
+package edu.njit.jerse.ashe.llm.openai;
 
 import edu.njit.jerse.ashe.llm.api.ApiRequestHandler;
 import org.apache.logging.log4j.LogManager;

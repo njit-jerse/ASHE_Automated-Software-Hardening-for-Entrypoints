@@ -1,5 +1,7 @@
 package edu.njit.jerse.automation;
 
+import edu.njit.jerse.ashe.llm.openai.models.GptModel;
+import edu.njit.jerse.ashe.utils.ModelValidator;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
@@ -13,11 +15,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.List;
-import java.util.Set;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
+import java.util.List;
+import java.util.ArrayList;
 
 /**
  * The {@code RepositoryAutomationEngine} class clones or fetches repositories
@@ -44,9 +44,6 @@ public class RepositoryAutomationEngine {
         }
     }
 
-    // TODO: Do we want to consider adding the LLM model in the CSV file?
-    // TODO: Users would be able to specify the model to use for each repository.
-    // TODO: This would be beneficial if we wanted to run multiple different models on the same repository.
     /**
      * Processes repositories listed in the given CSV file. This method
      * takes each entry in the CSV file, clones or fetches the corresponding repository,
@@ -223,35 +220,40 @@ public class RepositoryAutomationEngine {
      *
      * @param args command-line arguments, expected order:
      *             <ol>
-     *                 <li>Path to the repositories CSV file.</li>
-     *                 <li>Directory for cloning repositories.</li>
-     *                 <li>
-     *                     LLM argument - "gpt-4" or "manual"
-     *                     - gpt-4 will run the GPT-4 model
-     *                     - manual will run the manual response the user provides in predefined_responses.txt
+     *                 <li>path to the repositories CSV file</li>
+     *                 <li>directory for cloning repositories</li>
+     *                 <li>optional LLM argument:
+     *                     <ul>
+     *                         <li>"gpt-4" to run the {@link GptModel#GPT_4} model</li>
+     *                         <li>"mock" to run the mock response defined in predefined_responses.txt</li>
+     *                         <li>if this argument is omitted, a default model will be used ({@link GptModel#GPT_4})</li>
+     *                     </ul>
      *                 </li>
      *             </ol>
      */
     public static void main(String[] args) {
-        if (args.length != 3) {
-            LOGGER.error("Provide 3 arguments: the repositories CSV file, the directory in which to clone repositories, and the large language model to use.");
-            System.exit(1);
+        if (args.length < 2 || args.length > 3) {
+            String errorMessage = String.format(
+                    "Invalid number of arguments: expected 2 or 3 arguments, but received %d. " +
+                            "Required: 1) CSV file absolute path, 2) Directory for cloned repositories. " +
+                            "Optional: 3) Model name (LLM). Provided arguments: %s.",
+                    args.length, Arrays.toString(args));
+
+            LOGGER.error(errorMessage);
+            throw new IllegalArgumentException(errorMessage);
         }
 
         String csvFilePath = args[0];
         String repoDir = args[1];
 
-        // LLM argument - either gpt-4 or manual (for now)
-        String model = args[2];
-
-        // TODO: Add more models here.
-        // Example: Arrays.asList("llama", "palm", "grok");
-        Set<String> models = new HashSet<>(Arrays.asList("gpt-4", "manual"));
-        if (!models.contains(model)) {
-            LOGGER.error("Invalid model argument provided: " + model);
-            throw new IllegalArgumentException("Invalid model argument provided: " + model);
+        // If no model is provided, use the default model.
+        if (args.length == 2) {
+            readAndProcessRepositoriesCsv(csvFilePath, repoDir, ModelValidator.getDefaultModel());
+            return;
         }
 
+        String model = args[2];
+        ModelValidator.validateModel(model);
         readAndProcessRepositoriesCsv(csvFilePath, repoDir, model);
     }
 }

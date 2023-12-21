@@ -1,13 +1,13 @@
-package edu.njit.jerse.ashe.llm.chatgpt;
+package edu.njit.jerse.ashe.llm.openai;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.njit.jerse.ashe.llm.api.AbstractApiClient;
 import edu.njit.jerse.ashe.llm.api.ApiRequestHandler;
-import edu.njit.jerse.ashe.llm.chatgpt.models.GptMessage;
-import edu.njit.jerse.ashe.llm.chatgpt.models.GptModel;
-import edu.njit.jerse.ashe.llm.chatgpt.models.GptRequest;
-import edu.njit.jerse.ashe.llm.chatgpt.models.GptResponse;
+import edu.njit.jerse.ashe.llm.openai.models.GptMessage;
+import edu.njit.jerse.ashe.llm.openai.models.GptModel;
+import edu.njit.jerse.ashe.llm.openai.models.GptRequest;
+import edu.njit.jerse.ashe.llm.openai.models.GptResponse;
 import edu.njit.jerse.config.Configuration;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -29,11 +29,11 @@ public class GptApiClient extends AbstractApiClient {
     private static final Logger LOGGER = LogManager.getLogger(GptApiClient.class);
     Configuration config = Configuration.getInstance();
 
-    private final String GPT_API_KEY = config.getPropertyValue("chatgpt.api.key");
-    private final String GPT_API_URI = config.getPropertyValue("chatgpt.api.uri");
-    private final String GPT_SYSTEM = config.getPropertyValue("chatgpt.message.system");
-    private final String GPT_USER = config.getPropertyValue("chatgpt.message.user");
-    private final String GPT_SYSTEM_CONTENT = config.getPropertyValue("chatgpt.message.system.content");
+    private final String GPT_API_KEY = config.getPropertyValue("openai.api.key");
+    private final String GPT_API_URI = config.getPropertyValue("openai.api.uri");
+    private final String GPT_SYSTEM = config.getPropertyValue("openai.message.system");
+    private final String GPT_USER = config.getPropertyValue("openai.message.user");
+    private final String GPT_SYSTEM_CONTENT = config.getPropertyValue("openai.message.system.content");
 
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final ApiRequestHandler openAIService = new OpenAiRequestHandler();

@@ -84,7 +84,7 @@ In our prototype, those three tools are:
     - Create an [API](https://platform.openai.com/account/api-keys) key for the ChatGPT API under View API Keys.
 3. **Add the API key to `config.properties`:**
     - Copy the API key from OpenAI and paste it into the `config.properties` file in the `resources` directory,
-      replacing the `chatgpt.api.key` placeholder.
+      replacing the `openai.api.key` placeholder.
 
 ### Compiling ASHE
 
@@ -108,15 +108,20 @@ In our prototype, those three tools are:
 
 **Command Arguments:**
 
-- **--root:** Root directory of the target project.
-    - Example: `/root/path/to/your/targeted/project`
-- **--targetFile:** Source file to search for target methods.
-    - Example: `path/to/targetFile/Example.java`
-- **--targetMethod:** Target method to preserve. Format:
-  `class.fully.qualified.Name#methodName(Param1Type, Param2Type, ...)`.
-    - Example: `com.example.Example#foo()`
-- **--llm:** Language model to use. Currently, only ChatGPT-4 and manual responses are supported.
-    - Example: `gpt-4` or `manual`
+- **--root:** specifies the root directory of the target project
+    - Format: absolute path to the project directory
+    - Example: `--root /root/path/to/your/targeted/project`
+- **--targetFile:** identifies the source file within the project where the target methods are located
+    - Format: relative path from the root directory to the source file
+    - Example: `--targetFile path/to/targetFile/Example.java`
+- **--targetMethod:** specifies the target method that needs to be preserved
+    - Format: `fully.qualified.ClassName#methodName(ParameterType1, ParameterType2, ...)`
+    - Example: `--targetMethod com.example.Example#foo()`
+
+**Optional Argument:**
+- **--model:** large language model to use. Currently, only GPT-4 and mock responses are supported.
+    - Example: `gpt-4` or `mock`
+    - Note: if no LLM is specified, the default is `gpt-4`
 
 ### Logging
 
@@ -165,16 +170,26 @@ cloning and Java file processing.
 /absolute/path/to/project
 
 ### Running AsheAutomation
-
-1. **Choose an LLM:**
-    - To use ChatGPT-4, pass `gpt-4` through the arguments.
-    - More LLMs will be added in the future.
    
-2. **Execute AsheAutomation:**
+1. **Execute AsheAutomation:**
     - Run AsheAutomation using the following Gradle command:
       ```bash
       ./gradlew runAsheAutomation -PmodulePath="/path/to/module" -ProotProjectPath="/path/to/root/project" -Pmodel="llm-model"
       ```
+
+**Command Arguments:**
+
+- **--directoryPath:** specifies the absolute path to the directory containing Java files to be processed
+    - Format: absolute path to the directory
+    - Example: `/absolute/path/to/project/src/main/java/com/example/foo`
+- **--projectRootPath:** indicates the absolute root path of the project
+    - Format: absolute path to the project's root directory
+    - Example: `/absolute/path/to/project`
+
+**Optional Argument:**
+- **--model:** large language model to use. Currently, only GPT-4 and mock responses are supported.
+    - Example: `gpt-4` or `mock`
+    - Note: if no LLM is specified, the default is `gpt-4`
 
 ### Running RepositoryAutomationEngine
 
@@ -215,6 +230,20 @@ file containing the details of each repository. Follow these steps to create and
       ```bash
       ./gradlew runRepositoryAutomation -PrepositoriesCsvPath="/path/to/repositories.csv" -PcloneDirectory="/path/to/clone/directory" -Pmodel="llm-model"
       ```
+
+**Command Arguments:**
+
+- **--csvFilePath:** specifies the path to the CSV file containing repository details
+    - Format: absolute path to the CSV file
+    - Example: `path/to/repositories.csv`
+- **--repoDir:** indicates the directory where the repositories should be cloned
+    - Format: absolute path to the cloning directory
+    - Example: `/path/to/clone/directory`
+
+**Optional Argument:**
+- **--model:** large language model to use. Currently, only GPT-4 and mock responses are supported.
+    - Example: `gpt-4` or `mock`
+    - Note: if no LLM is specified, the default is `gpt-4`
 
 <br/>
 

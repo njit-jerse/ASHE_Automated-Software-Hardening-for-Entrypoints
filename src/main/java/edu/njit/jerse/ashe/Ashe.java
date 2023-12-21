@@ -1,16 +1,16 @@
 package edu.njit.jerse.ashe;
 
+import edu.njit.jerse.ashe.llm.openai.models.GptModel;
 import edu.njit.jerse.ashe.services.MethodReplacementService;
 import edu.njit.jerse.ashe.utils.JavaCodeCorrector;
 import edu.njit.jerse.ashe.utils.JavaCodeParser;
+import edu.njit.jerse.ashe.utils.ModelValidator;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 // TODO: Throughout the project, logs must be updated to fix any misleading or duplicate messages.
@@ -55,8 +55,7 @@ import java.util.concurrent.TimeoutException;
  * <p>
  * Example usage:
  * <pre>
- *     Ashe ashe = new Ashe();
- *     ashe.run(rootPath, targetFilePath, targetMethodName);
+ *     Ashe.run(rootPath, targetFilePath, targetMethodName, model);
  * </pre>
  * </p>
  */
@@ -86,9 +85,9 @@ public class Ashe {
      * @throws InterruptedException if the current thread was interrupted while waiting
      * @throws TimeoutException     if a timeout was encountered during task execution
      */
-    public void run(String root, String targetFile, String targetMethod, String model)
+    public static void run(String root, String targetFile, String targetMethod, String model)
             throws IOException, ExecutionException, InterruptedException, TimeoutException {
-        LOGGER.info("Running ASHE...");
+        LOGGER.info("Running ASHE with the {} model...", model);
 
         JavaCodeCorrector corrector = new JavaCodeCorrector();
 
@@ -122,26 +121,23 @@ public class Ashe {
     }
 
     /**
-     * Entry point of the ASHE application. It expects three command-line arguments,
-     * which are used to initiate the run of ASHE functionality. The arguments specify
-     * the root path, target Java file, and target method to be processed. These
-     * arguments are necessary to utilize the specified minimization with Specimin.
+     * Entry point of the ASHE application. It expects three or four command-line arguments,
+     * with the fourth argument being optional. The first three arguments specify the root path,
+     * target Java file, and target method to be processed, which are necessary for utilizing
+     * the Specimin minimization functionality. The optional fourth argument determines the
+     * model to be used.
      *
      * @param args command-line arguments, expected order:
      *             <ol>
-     *                 <li>
-     *                     root path of the target Java file
-     *                 </li>
-     *                 <li>
-     *                     name of the target Java file
-     *                 </li>
-     *                 <li>
-     *                     name and parameter types of the target method within the Java file
-     *                 </li>
-     *                 <li>
-     *                     LLM argument - "gpt-4" or "manual"
-     *                     - gpt-4 will run the GPT-4 model
-     *                     - manual will run the manual response the user provides in predefined_responses.txt
+     *                 <li>root path of the target Java file</li>
+     *                 <li>name of the target Java file</li>
+     *                 <li>name and parameter types of the target method within the Java file</li>
+     *                 <li>optional LLM argument:
+     *                     <ul>
+     *                         <li>"gpt-4" to run the {@link GptModel#GPT_4} model</li>
+     *                         <li>"mock" to run the mock response defined in predefined_responses.txt</li>
+     *                         <li>if this argument is omitted, a default model will be used ({@link GptModel#GPT_4})</li>
+     *                     </ul>
      *                 </li>
      *             </ol>
      * @throws IOException          if an I/O error occurs during file operations
@@ -151,9 +147,15 @@ public class Ashe {
      */
     public static void main(String[] args)
             throws IOException, ExecutionException, InterruptedException, TimeoutException {
-        if (args.length != 4) {
-            LOGGER.error("Invalid number of arguments provided. Expected arguments: root, targetFile, targetMethod, model. Provided arguments: {}.", Arrays.toString(args));
-            throw new IllegalArgumentException("Invalid number of arguments provided. Expected arguments: root, targetFile, targetMethod, model. Provided arguments: " + Arrays.toString(args) + ".");
+        if (args.length < 3 || args.length > 4) {
+            String errorMessage = String.format(
+                    "Invalid number of arguments: expected 3 or 4, but received %d. " +
+                            "Required arguments: 1) 'root', 2) 'targetFile', 3) 'targetMethod'. " +
+                            "Optional: 4) Model name. Provided arguments: %s",
+                    args.length, Arrays.toString(args));
+
+            LOGGER.error(errorMessage);
+            throw new IllegalArgumentException(errorMessage);
         }
 
         // Specimin arguments
@@ -161,18 +163,14 @@ public class Ashe {
         String targetFile = args[1];
         String targetMethod = args[2];
 
-        // LLM argument - either gpt-4 or manual (for now)
-        String model = args[3];
-
-        // TODO: Add more models here.
-        // Example: Arrays.asList("llama", "palm", "grok");
-        Set<String> models = new HashSet<>(Arrays.asList("gpt-4", "manual"));
-        if (!models.contains(model)) {
-            LOGGER.error("Invalid model argument provided: " + model);
-            throw new IllegalArgumentException("Invalid model argument provided: " + model);
+        // If no model is provided, use the default model.
+        if (args.length == 3) {
+            run(root, targetFile, targetMethod, ModelValidator.getDefaultModel());
+            return;
         }
 
-        Ashe ashe = new Ashe();
-        ashe.run(root, targetFile, targetMethod, model);
+        String model = args[3];
+        ModelValidator.validateModel(model);
+        run(root, targetFile, targetMethod, model);
     }
 }
