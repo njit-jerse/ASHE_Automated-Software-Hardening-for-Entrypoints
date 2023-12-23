@@ -56,23 +56,25 @@ task tags(type: Exec) {
 // TODO: Create a task to run ASHE#main here
 
 // Command to run AsheAutomation#main
-// ./gradlew runAsheAutomation -PmodulePath="/path/to/module" -ProotProjectPath="/path/to/root/project"
+// ./gradlew runAsheAutomation -PmodulePath="/path/to/module" -ProotProjectPath="/path/to/root/project" -Pmodel="llm-model"
 tasks.register('runAsheAutomation', JavaExec) {
     classpath = sourceSets.main.runtimeClasspath
     mainClass.set('edu.njit.jerse.automation.AsheAutomation')
     args = [
             project.findProperty('modulePath'),
-            project.findProperty('rootProjectPath')
+            project.findProperty('rootProjectPath'),
+            project.findProperty('model')
     ]
 }
 
 // Command to run RepositoryAutomationEngine#main
-// ./gradlew runRepositoryAutomation -PrepositoriesCsvPath="/path/to/repositories.csv" -PcloneDirectory="/path/to/clone/directory"
+// ./gradlew runRepositoryAutomation -PrepositoriesCsvPath="/path/to/repositories.csv" -PcloneDirectory="/path/to/clone/directory" -Pmodel="llm-model"
 tasks.register('runRepositoryAutomation', JavaExec) {
     classpath = sourceSets.main.runtimeClasspath
     mainClass.set('edu.njit.jerse.automation.RepositoryAutomationEngine')
     args = [
             project.findProperty('repositoriesCsvPath'),
-            project.findProperty('cloneDirectory')
+            project.findProperty('cloneDirectory'),
+            project.findProperty('model')
     ]
 }

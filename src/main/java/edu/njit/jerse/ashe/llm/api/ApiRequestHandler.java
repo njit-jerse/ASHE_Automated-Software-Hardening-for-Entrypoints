@@ -1,4 +1,4 @@
-package edu.njit.jerse.ashe.api;
+package edu.njit.jerse.ashe.llm.api;
 
 import java.io.IOException;
 import java.net.http.HttpClient;
@@ -8,10 +8,10 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
 /**
- * The ApiService interface provides methods for interacting with an API.
+ * The {@code ApiRequestHandler} interface provides methods for interacting with an API.
  * It defines methods to create API requests and fetch API responses.
  */
-public interface ApiService {
+public interface ApiRequestHandler {
 
     /**
      * Creates an API request.

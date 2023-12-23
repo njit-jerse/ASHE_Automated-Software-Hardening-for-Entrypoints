@@ -1,12 +1,13 @@
-package edu.njit.jerse.ashe.services;
+package edu.njit.jerse.ashe.llm.openai;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import edu.njit.jerse.ashe.api.ApiService;
-import edu.njit.jerse.ashe.models.GptMessage;
-import edu.njit.jerse.ashe.models.GptModel;
-import edu.njit.jerse.ashe.models.GptRequest;
-import edu.njit.jerse.ashe.models.GptResponse;
+import edu.njit.jerse.ashe.llm.api.AbstractApiClient;
+import edu.njit.jerse.ashe.llm.api.ApiRequestHandler;
+import edu.njit.jerse.ashe.llm.openai.models.GptMessage;
+import edu.njit.jerse.ashe.llm.openai.models.GptModel;
+import edu.njit.jerse.ashe.llm.openai.models.GptRequest;
+import edu.njit.jerse.ashe.llm.openai.models.GptResponse;
 import edu.njit.jerse.config.Configuration;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -23,19 +24,19 @@ import java.util.concurrent.TimeoutException;
  * of corrections based on provided prompts. It encapsulates the process of constructing
  * API requests, sending them, and handling the responses.
  */
-public class GptApiClient {
+public class GptApiClient extends AbstractApiClient {
 
     private static final Logger LOGGER = LogManager.getLogger(GptApiClient.class);
     Configuration config = Configuration.getInstance();
 
-    private final String API_KEY = config.getPropertyValue("llm.api.key");
-    private final String API_URI = config.getPropertyValue("llm.api.uri");
-    private final String GPT_SYSTEM = config.getPropertyValue("gpt.message.system");
-    private final String GPT_USER = config.getPropertyValue("gpt.message.user");
-    private final String GPT_SYSTEM_CONTENT = config.getPropertyValue("gpt.message.system.content");
+    private final String GPT_API_KEY = config.getPropertyValue("openai.api.key");
+    private final String GPT_API_URI = config.getPropertyValue("openai.api.uri");
+    private final String GPT_SYSTEM = config.getPropertyValue("openai.message.system");
+    private final String GPT_USER = config.getPropertyValue("openai.message.user");
+    private final String GPT_SYSTEM_CONTENT = config.getPropertyValue("openai.message.system.content");
 
     private final ObjectMapper objectMapper = new ObjectMapper();
-    private final ApiService openAIService = new OpenAiService();
+    private final ApiRequestHandler openAIService = new OpenAiRequestHandler();
 
     /**
      * Fetches the GPT model's correction output based on the provided prompt.
@@ -47,7 +48,8 @@ public class GptApiClient {
      * @throws ExecutionException   if the computation threw an exception
      * @throws TimeoutException     if the wait timed out
      */
-    public String fetchGptResponse(String prompt)
+    @Override
+    public String fetchApiResponse(String prompt, String model)
             throws IOException, InterruptedException, ExecutionException, TimeoutException {
 
         LOGGER.debug("Fetching GPT correction with prompt: {}", prompt);
@@ -96,8 +98,9 @@ public class GptApiClient {
      * @param apiRequestBody a {@code String} containing the JSON representation of the GPT request object
      * @return an {@code HttpRequest} object configured for the GPT API
      */
-    private HttpRequest createApiRequest(String apiRequestBody) {
-        return openAIService.apiRequest(API_KEY, API_URI, apiRequestBody);
+    @Override
+    public HttpRequest createApiRequest(String apiRequestBody) {
+        return openAIService.apiRequest(GPT_API_KEY, GPT_API_URI, apiRequestBody);
     }
 
     /**
@@ -110,7 +113,8 @@ public class GptApiClient {
      * @throws ExecutionException   if the computation threw an exception
      * @throws TimeoutException     if the wait timed out
      */
-    private HttpResponse<String> getApiResponse(HttpRequest request)
+    @Override
+    public HttpResponse<String> getApiResponse(HttpRequest request)
             throws IOException, InterruptedException, ExecutionException, TimeoutException {
 
         HttpClient client = HttpClient.newHttpClient();
@@ -124,7 +128,8 @@ public class GptApiClient {
      * @return a {@code String} representing the model's output, or an error message in case of non-200 status codes
      * @throws IOException if processing the response body fails
      */
-    private String handleApiResponse(HttpResponse<String> httpResponse) throws IOException {
+    @Override
+    public String handleApiResponse(HttpResponse<String> httpResponse) throws IOException {
         ObjectMapper objectMapper = new ObjectMapper();
 
         if (httpResponse.statusCode() == 200) {
