@@ -6,7 +6,6 @@ import org.apache.logging.log4j.Logger;
 
 import java.util.List;
 
-
 /**
  * This class provides utility methods for validating large language model names. It is designed to
  * ensure that only pre-approved large language model names are used in the application. The list of
@@ -14,7 +13,6 @@ import java.util.List;
  */
 public class ModelValidator {
     private static final Logger LOGGER = LogManager.getLogger(ModelValidator.class);
-
 
     /**
      * A list of valid large language model names supported by the application.
@@ -50,7 +48,7 @@ public class ModelValidator {
      * @param model the model name to validate
      * @throws IllegalArgumentException if the provided model name is not in the list of valid models
      */
-    public static void validateModel(String model) {
+    public static void validateModel(String model) throws IllegalArgumentException {
         if (!VALID_MODELS.contains(model)) {
             LOGGER.error("Invalid model argument provided: " + model);
             throw new IllegalArgumentException("Invalid model argument provided: " + model);
