@@ -69,6 +69,7 @@ public class AsheAutomation {
      *
      * @param javaFilePath    the path to the Java file to be processed
      * @param projectRootPath the root path of the project, must be a prefix of the javaFile's absolute path
+     * @param model           the model to use for error correction
      * @throws IOException          if an I/O error occurs when opening or parsing the file
      * @throws ExecutionException   if {@link Ashe} encounters an error during execution
      * @throws InterruptedException if {@link Ashe}'s execution is interrupted
@@ -195,6 +196,7 @@ public class AsheAutomation {
      *                     <ul>
      *                         <li>"gpt-4" to run the {@link GptModel#GPT_4} model</li>
      *                         <li>"mock" to run the mock response defined in predefined_responses.txt</li>
+     *                         <li>"dryrun" to run {@link Ashe#run} without a model, skipping the error correction process</li>
      *                         <li>if this argument is omitted, a default model will be used ({@link GptModel#GPT_4})</li>
      *                     </ul>
      *                 </li>

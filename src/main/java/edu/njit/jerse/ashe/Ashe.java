@@ -94,6 +94,14 @@ public class Ashe {
         String speciminTempDir = corrector.minimizeTargetFile(root, targetFile, targetMethod);
         final String sourceFilePath = String.valueOf(Paths.get(speciminTempDir, targetFile));
 
+        // The purpose of the dryrun mode is to test the Specimin minimization functionality.
+        // Therefore, skipping the error correction process is acceptable.
+        if (model.equals("dryrun")) {
+            LOGGER.info("Dryrun mode enabled. Skipping error correction.");
+            LOGGER.info("Exiting...");
+            return;
+        }
+
         boolean errorsReplacedInTargetFile = corrector.fixTargetFileErrorsWithModel(sourceFilePath, targetMethod, model);
 
         if (!errorsReplacedInTargetFile) {
@@ -136,6 +144,7 @@ public class Ashe {
      *                     <ul>
      *                         <li>"gpt-4" to run the {@link GptModel#GPT_4} model</li>
      *                         <li>"mock" to run the mock response defined in predefined_responses.txt</li>
+     *                         <li>"dryrun" to run {@code Ashe#run} without a model, skipping the error correction process</li>
      *                         <li>if this argument is omitted, a default model will be used ({@link GptModel#GPT_4})</li>
      *                     </ul>
      *                 </li>
