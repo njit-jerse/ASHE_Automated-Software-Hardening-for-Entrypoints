@@ -119,8 +119,9 @@ In our prototype, those three tools are:
     - Example: `--targetMethod com.example.Example#foo()`
 
 **Optional Argument:**
-- **--model:** large language model to use. Currently, only GPT-4 and mock responses are supported.
-    - Example: `gpt-4` or `mock`
+- **--model:** large language model to use. Currently, only GPT-4, mock, and dryrun are supported, where mock is a
+  test mode that responds with a mock patch and dryrun is a test mode that skips the error correction process.
+    - Example: `gpt-4`, `mock`, or `dryrun`
     - Note: if no LLM is specified, the default is `gpt-4`
 
 ### Logging
@@ -187,8 +188,9 @@ cloning and Java file processing.
     - Example: `/absolute/path/to/project`
 
 **Optional Argument:**
-- **--model:** large language model to use. Currently, only GPT-4 and mock responses are supported.
-    - Example: `gpt-4` or `mock`
+- **--model:** large language model to use. Currently, only GPT-4, mock, and dryrun are supported, where mock is a
+  test mode that responds with a mock patch and dryrun is a test mode that skips the error correction process.
+    - Example: `gpt-4`, `mock`, or `dryrun`
     - Note: if no LLM is specified, the default is `gpt-4`
 
 ### Running RepositoryAutomationEngine
@@ -241,8 +243,9 @@ file containing the details of each repository. Follow these steps to create and
     - Example: `/path/to/clone/directory`
 
 **Optional Argument:**
-- **--model:** large language model to use. Currently, only GPT-4 and mock responses are supported.
-    - Example: `gpt-4` or `mock`
+- **--model:** large language model to use. Currently, only GPT-4, mock, and dryrun are supported, where mock is a
+test mode that responds with a mock patch and dryrun is a test mode that skips the error correction process.
+    - Example: `gpt-4`, `mock`, or `dryrun`
     - Note: if no LLM is specified, the default is `gpt-4`
 
 <br/>

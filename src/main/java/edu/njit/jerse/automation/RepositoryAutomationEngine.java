@@ -1,5 +1,6 @@
 package edu.njit.jerse.automation;
 
+import edu.njit.jerse.ashe.Ashe;
 import edu.njit.jerse.ashe.llm.openai.models.GptModel;
 import edu.njit.jerse.ashe.utils.ModelValidator;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -226,6 +227,7 @@ public class RepositoryAutomationEngine {
      *                     <ul>
      *                         <li>"gpt-4" to run the {@link GptModel#GPT_4} model</li>
      *                         <li>"mock" to run the mock response defined in predefined_responses.txt</li>
+     *                         <li>"dryrun" to run {@link Ashe#run} without a model, skipping the error correction process</li>
      *                         <li>if this argument is omitted, a default model will be used ({@link GptModel#GPT_4})</li>
      *                     </ul>
      *                 </li>

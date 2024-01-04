@@ -1,5 +1,6 @@
 package edu.njit.jerse.ashe.utils;
 
+import edu.njit.jerse.ashe.Ashe;
 import edu.njit.jerse.ashe.llm.openai.models.GptModel;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -25,11 +26,11 @@ public class ModelValidator {
      * <ul>
      *     <li>"gpt-4" - represents the {@link GptModel#GPT_4} model</li>
      *     <li>"mock" - represents a mock model for testing or development purposes</li>
+     *     <li>"dryrun" - dryrun allows {@link Ashe#run} to run without a model, skipping the error correction process</li>
      * </ul>
-     *
      * TODO: Add more models to this list once they are handled by the application.
      */
-    private static final List<String> VALID_MODELS = List.of("gpt-4", "mock");
+    private static final List<String> VALID_MODELS = List.of("gpt-4", "mock", "dryrun");
 
     /**
      * Gets the default model name. This method returns the first model in the list of valid models.
