@@ -84,6 +84,7 @@ tasks.register('renameCheckerFrameworkJars') {
     doLast {
         fileTree(layout.buildDirectory.dir("libs/checkerframework")).include('*.jar').each { File file ->
             // Use the dynamically resolved version to replace in the file name.
+            // For exmaple: checker-3.38.0.jar -> checker.jar
             if (file.name.endsWith('.jar') && file.name.contains(checkerFrameworkVersion)) {
                 String newName = file.name.replace("-${checkerFrameworkVersion}", "")
                 if (!file.renameTo(new File(file.parent, newName))) {
