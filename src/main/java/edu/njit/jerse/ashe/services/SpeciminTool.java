@@ -150,7 +150,9 @@ public final class SpeciminTool {
         try {
             process = builder.start();
         } catch (IOException e) {
-            throw new IOException("Failed to start the Specimin process", e);
+            String errorMessage = "Failed to start the Specimin process";
+            LOGGER.error(errorMessage, e);
+            throw new IOException(errorMessage, e);
         }
 
         logProcessOutput(process);
@@ -170,8 +172,9 @@ public final class SpeciminTool {
                 LOGGER.info(line);
             }
         } catch (IOException e) {
-            LOGGER.error("Failed to read output from Specimin process", e);
-            throw new IOException("Failed to read output from Specimin process", e);
+            String errorMessage = "Failed to read output from Specimin process";
+            LOGGER.error(errorMessage, e);
+            throw new IOException(errorMessage, e);
         }
     }
 
@@ -187,8 +190,9 @@ public final class SpeciminTool {
             int exitValue = process.waitFor();
             // Skip throwing an exception if running in dryrun mode so that the process can continue iterations.
             if (exitValue != 0 && !Ashe.MODEL.equals("dryrun")) {
-                LOGGER.error("Error executing the command. Exit value: {}", exitValue);
-                throw new InterruptedException("Error executing the command. Exit value: " + exitValue);
+                String errorMessage = "Error executing the command. Exit value: " + exitValue;
+                LOGGER.error(errorMessage);
+                throw new InterruptedException(errorMessage);
             }
         } finally {
             process.getErrorStream().close();
