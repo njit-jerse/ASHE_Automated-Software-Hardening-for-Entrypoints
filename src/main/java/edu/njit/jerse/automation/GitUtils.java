@@ -38,7 +38,12 @@ public class GitUtils {
             cloneCommand.setBranch(branch);
         }
 
-        cloneCommand.call();
+        try {
+            cloneCommand.call();
+        } catch (GitAPIException e) {
+            LOGGER.error("Error occurred while cloning repository: " + repoUrl, e);
+            throw e;
+        }
         LOGGER.info("Clone completed successfully {}", repoUrl);
     }
 
@@ -53,7 +58,12 @@ public class GitUtils {
     public static void fetchRepository(Path repoPath) throws IOException, GitAPIException {
         LOGGER.info("Fetching changes for repository: " + repoPath);
         try (Git git = Git.open(repoPath.toFile())) {
-            git.fetch().call();
+            try {
+                git.fetch().call();
+            } catch (GitAPIException e) {
+                LOGGER.error("Error occurred while fetching changes for repository: " + repoPath, e);
+                throw e;
+            }
             LOGGER.info("Fetch completed successfully {}", repoPath);
         }
     }
