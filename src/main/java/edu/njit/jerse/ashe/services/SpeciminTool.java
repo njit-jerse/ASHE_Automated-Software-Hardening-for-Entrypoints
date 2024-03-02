@@ -1,6 +1,7 @@
 package edu.njit.jerse.ashe.services;
 
 import edu.njit.jerse.ashe.Ashe;
+import edu.njit.jerse.ashe.utils.ModelValidator;
 import edu.njit.jerse.config.Configuration;
 import edu.njit.jerse.ashe.utils.JavaCodeCorrector;
 import org.apache.logging.log4j.LogManager;
@@ -174,7 +175,7 @@ public final class SpeciminTool {
             while ((line = reader.readLine()) != null) {
                 // Log the output if there's no exception or if running in dryrun mode.
                 // Logging the exception in dryrun mode is useful for reporting bugs in Specimin.
-                if (line.toLowerCase().contains("exception") && !Ashe.MODEL.equals("dryrun")) {
+                if (line.toLowerCase().contains("exception") && !Ashe.MODEL.equals(ModelValidator.DRY_RUN)) {
                     output = new StringBuilder().append("FAILURE: Build failed with an exception.");
                     break;
                 }
@@ -202,7 +203,7 @@ public final class SpeciminTool {
         try {
             int exitValue = process.waitFor();
             // Skip throwing an exception if running in dryrun mode so that the process can continue iterations.
-            if (exitValue != 0 && !Ashe.MODEL.equals("dryrun")) {
+            if (exitValue != 0 && !Ashe.MODEL.equals(ModelValidator.DRY_RUN)) {
                 String errorMessage = "Error executing the command. Exit value: " + exitValue;
                 LOGGER.error(errorMessage);
                 throw new InterruptedException(errorMessage);

@@ -1,6 +1,7 @@
 package edu.njit.jerse.ashe.llm.openai.models;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import edu.njit.jerse.ashe.utils.ModelValidator;
 
 /**
  * Represents the various models provided by the ChatGPT API.
@@ -23,7 +24,7 @@ public enum GptModel {
     */
 
     GPT_4(
-            "gpt-4",
+            ModelValidator.GPT_4,
             0.2,
             1000,
             0.1,
