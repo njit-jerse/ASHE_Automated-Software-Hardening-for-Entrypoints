@@ -100,10 +100,21 @@ public class Ashe {
 
         JavaCodeCorrector corrector = new JavaCodeCorrector();
 
-        Path speciminTempDir = corrector.minimizeTargetFile(root, targetFile, targetMethod);
+        Path speciminTempDir;
 
         try {
-            final String sourceFilePath = speciminTempDir.resolve(targetFile).toString();
+            speciminTempDir = corrector.minimizeTargetFile(root, targetFile, targetMethod);
+        } catch (InterruptedException e) {
+            LOGGER.error("Failed to minimize the target file.");
+            LOGGER.info("Skipping...");
+            return;
+        }
+
+        try {
+            String sourceFilePath = "";
+            if (speciminTempDir != null) {
+                sourceFilePath = speciminTempDir.resolve(targetFile).toString();
+            }
 
             if (model.equals("dryrun")) {
                 LOGGER.info("Dryrun mode enabled. Skipping error correction.");
@@ -138,7 +149,10 @@ public class Ashe {
             }
         } finally {
             LOGGER.info("Cleaning up temporary directory: " + speciminTempDir);
-            boolean deletedTempDir = FilesPlume.deleteDir(speciminTempDir.toFile());
+            boolean deletedTempDir = false;
+            if (speciminTempDir != null) {
+                deletedTempDir = FilesPlume.deleteDir(speciminTempDir.toFile());
+            }
             if (!deletedTempDir) {
                 LOGGER.error("Failed to delete temporary directory: " + speciminTempDir);
             }

@@ -160,22 +160,35 @@ public final class SpeciminTool {
     }
 
     /**
-     * Logs the output from the Specimin process.
+     * Logs the output from the Specimin process. If there is an and the model is not dryrun, the logger will skip
+     * the output and provide a failure message. Else, the entirety of the output will be logged.
      *
      * @param process The running Specimin process.
      * @throws IOException If there's an error reading the output.
      */
     private static void logProcessOutput(Process process) throws IOException {
+        StringBuilder output = new StringBuilder();
+
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
             String line;
             while ((line = reader.readLine()) != null) {
-                LOGGER.info(line);
+                // Log the output if there's no exception or if running in dryrun mode.
+                // Logging the exception in dryrun mode is useful for reporting bugs in Specimin.
+                if (line.toLowerCase().contains("exception") && !Ashe.MODEL.equals("dryrun")) {
+                    output = new StringBuilder().append("FAILURE: Build failed with an exception.");
+                    break;
+                }
+                output.append(line).append(System.lineSeparator());
             }
         } catch (IOException e) {
             String errorMessage = "Failed to read output from Specimin process";
             LOGGER.error(errorMessage, e);
             throw new IOException(errorMessage, e);
         }
+
+        // Prepend the output with a header
+        output.insert(0, System.lineSeparator() + "Specimin output:" + System.lineSeparator());
+        LOGGER.info(output.toString());
     }
 
     /**
