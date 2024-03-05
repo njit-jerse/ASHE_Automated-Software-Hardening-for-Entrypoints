@@ -106,7 +106,7 @@ public class Ashe {
             speciminTempDir = corrector.minimizeTargetFile(root, targetFile, targetMethod);
         } catch (InterruptedException e) {
             LOGGER.error("Failed to minimize the target file.");
-            LOGGER.info("Exiting...");
+            LOGGER.info("Skipping...");
             return;
         }
 
