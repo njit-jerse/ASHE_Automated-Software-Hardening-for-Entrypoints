@@ -28,6 +28,11 @@ public class ModelValidator {
         throw new AssertionError("Cannot instantiate ModelValidator");
     }
 
+    // Static fields to represent the valid model names
+    public static final String DRY_RUN = "dryrun";
+    public static final String MOCK = "mock";
+    public static final String GPT_4 = "gpt-4";
+
     /**
      * A list of valid large language model names supported by the application.
      * <p>
@@ -43,7 +48,7 @@ public class ModelValidator {
      * </ul>
      * TODO: Add more models to this list once they are handled by the application.
      */
-    private static final List<String> VALID_MODELS = List.of("gpt-4", "mock", "dryrun");
+    private static final List<String> VALID_MODELS = List.of(GPT_4, MOCK, DRY_RUN);
 
     /**
      * Gets the default model name. This method returns the first model in the list of valid models.

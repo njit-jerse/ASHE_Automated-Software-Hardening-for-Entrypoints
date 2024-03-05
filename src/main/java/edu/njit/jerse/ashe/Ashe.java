@@ -116,7 +116,7 @@ public class Ashe {
                 sourceFilePath = speciminTempDir.resolve(targetFile).toString();
             }
 
-            if (model.equals("dryrun")) {
+            if (model.equals(ModelValidator.DRY_RUN)) {
                 LOGGER.info("Dryrun mode enabled. Skipping error correction.");
                 return;
             }

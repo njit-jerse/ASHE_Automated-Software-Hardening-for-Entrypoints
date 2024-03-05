@@ -60,12 +60,12 @@ public class JavaCodeCorrector {
             InterruptedException, ExecutionException, TimeoutException {
 
         ApiClient apiClient = switch (model) {
-            case "gpt-4" -> new GptApiClient();
+            case ModelValidator.GPT_4 -> new GptApiClient();
             // TODO: Add these LLM APIs to ASHE and uncomment them here.
             // case "llama" -> new LlamaApiClient();
             // case "palm" -> new PalmApiClient();
             // case "grok" -> new GrokApiClient();
-            case "mock" -> new MockResponseClient();
+            case ModelValidator.MOCK -> new MockResponseClient();
             default -> throw new IllegalStateException("Unexpected value: " + model);
         };
 
