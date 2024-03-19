@@ -2,6 +2,7 @@ package edu.njit.jerse.ashe;
 
 import edu.njit.jerse.ashe.llm.openai.models.GptModel;
 import edu.njit.jerse.ashe.services.MethodReplacementService;
+import edu.njit.jerse.ashe.services.SpeciminTool;
 import edu.njit.jerse.ashe.utils.JavaCodeCorrector;
 import edu.njit.jerse.ashe.utils.JavaCodeParser;
 import edu.njit.jerse.ashe.utils.ModelValidator;
@@ -103,17 +104,25 @@ public class Ashe {
 
         try {
             speciminTempDir = corrector.minimizeTargetFile(root, targetFile, targetMethod);
-        } catch (InterruptedException e) {
-            LOGGER.error("Failed to minimize the target file.");
+            if (speciminTempDir == null) {
+                LOGGER.info("Specimin temporary directory is null.");
+                LOGGER.info("Skipping...");
+                return;
+            }
+        } catch (IOException | InterruptedException e) {
+            LOGGER.error("Failed to minimize the target file. " + e);
             LOGGER.info("Skipping...");
             return;
         }
 
         try {
-            String sourceFilePath = "";
-            if (speciminTempDir != null) {
-                sourceFilePath = speciminTempDir.resolve(targetFile).toString();
+            boolean didCompile = SpeciminTool.compileMinimizedFiles(speciminTempDir.toString());
+            if (!didCompile) {
+                LOGGER.info("Skipping...");
+                return;
             }
+
+            String sourceFilePath = speciminTempDir.resolve(targetFile).toString();
 
             if (model.equals(ModelValidator.DRY_RUN)) {
                 LOGGER.info("Dryrun mode enabled. Skipping error correction.");
@@ -148,10 +157,7 @@ public class Ashe {
             }
         } finally {
             LOGGER.info("Cleaning up temporary directory: " + speciminTempDir);
-            boolean deletedTempDir = false;
-            if (speciminTempDir != null) {
-                deletedTempDir = FilesPlume.deleteDir(speciminTempDir.toFile());
-            }
+            boolean deletedTempDir = FilesPlume.deleteDir(speciminTempDir.toFile());
             if (!deletedTempDir) {
                 LOGGER.error("Failed to delete temporary directory: " + speciminTempDir);
             }
