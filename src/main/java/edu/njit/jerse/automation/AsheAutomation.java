@@ -1,6 +1,7 @@
 package edu.njit.jerse.automation;
 
 import com.github.javaparser.ParseProblemException;
+import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.body.BodyDeclaration;
@@ -34,7 +35,10 @@ public class AsheAutomation {
 
     // A standard Maven/Gradle project structure
     public static final String JAVA_SOURCE_DIR = "src/main/java";
-
+    // Set java parser version to 21. TODO: find a better place for this
+    static {
+    	StaticJavaParser.getParserConfiguration().setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_21);
+    }
     /**
      * Calls the {@link #processSingleJavaFile(Path, String, String)} method on each Java file in or under
      * the given directory.
