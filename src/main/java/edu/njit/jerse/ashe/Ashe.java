@@ -134,8 +134,7 @@ public class Ashe {
                 LOGGER.info("Dryrun mode enabled. Skipping error correction.");
                 return;
             }
-
-            LOGGER.info("Errors replaced with {} response successfully.", model);
+            LOGGER.info("Attempting to fix errors in target file...");
             boolean errorsReplacedInTargetFile = corrector.fixTargetFileErrorsWithModel(sourceFilePath, targetMethod, model);
 
             if (!errorsReplacedInTargetFile) {
