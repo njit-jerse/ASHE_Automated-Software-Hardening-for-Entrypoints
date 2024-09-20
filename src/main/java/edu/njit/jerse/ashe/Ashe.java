@@ -1,15 +1,5 @@
 package edu.njit.jerse.ashe;
 
-import edu.njit.jerse.ashe.llm.openai.models.GptModel;
-import edu.njit.jerse.ashe.services.MethodReplacementService;
-import edu.njit.jerse.ashe.services.SpeciminTool;
-import edu.njit.jerse.ashe.utils.JavaCodeCorrector;
-import edu.njit.jerse.ashe.utils.JavaCodeParser;
-import edu.njit.jerse.ashe.utils.ModelValidator;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.plumelib.util.FilesPlume;
-
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -19,6 +9,16 @@ import java.util.concurrent.TimeoutException;
 // TODO: Throughout the project, logs must be updated to fix any misleading or duplicate messages.
 // TODO: JavaDocs need to be updated throughout the project.
 // TODO: Logs and Exceptions sharing the same error message could be stored in a String.
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import edu.njit.jerse.ashe.llm.openai.models.GptModel;
+import edu.njit.jerse.ashe.services.MethodReplacementService;
+import edu.njit.jerse.ashe.services.SpeciminTool;
+import edu.njit.jerse.ashe.utils.JavaCodeCorrector;
+import edu.njit.jerse.ashe.utils.JavaCodeParser;
+import edu.njit.jerse.ashe.utils.ModelValidator;
 
 /**
  * The {@code Ashe} class orchestrates the correction, minimization, and method
@@ -162,11 +162,12 @@ public class Ashe {
             }
         } finally {
             LOGGER.info("Cleaning up temporary directory: " + speciminTempDir);
+            /**
             boolean deletedTempDir = FilesPlume.deleteDir(speciminTempDir.toFile());
             if (!deletedTempDir) {
                 LOGGER.error("Failed to delete temporary directory: " + speciminTempDir);
             }
-
+*/
             LOGGER.info("Exiting...");
         }
     }
