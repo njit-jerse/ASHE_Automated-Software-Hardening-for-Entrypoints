@@ -44,12 +44,20 @@ public final class CheckerFrameworkCompiler {
 
         // Compilation command with Checker Framework
         String[] command = compileCheckedClassCommand(classPath);
-        LOGGER.debug("Executing compilation command: {}", String.join(" ", command));
+        LOGGER.info("Executing compilation command: {}", String.join(" ", command));
 
         Process compileProcess = Runtime.getRuntime().exec(command);
         String errorOutput = CharStreams.toString(new InputStreamReader(compileProcess.getErrorStream(), StandardCharsets.UTF_8));
 
         String extractedError = extractError(errorOutput);
+        try {
+        	int exitCode=compileProcess.waitFor();
+        	if(exitCode != 0)
+        		LOGGER.info("Checker Framework did not run, exit code: "+exitCode);
+		} catch (InterruptedException e) {
+			LOGGER.info("Checker Framework interrupted.");
+		}
+        
         if (extractedError.isEmpty()) {
             LOGGER.info("Compilation successful for classPath: {}", classPath);
         } else {
