@@ -138,7 +138,7 @@ public class Ashe {
             boolean errorsReplacedInTargetFile = corrector.fixTargetFileErrorsWithModel(sourceFilePath, targetMethod, model);
 
             if (!errorsReplacedInTargetFile) {
-                if (corrector.checkedFileError(sourceFilePath).isEmpty()) {
+                if (corrector.checkedFileError(speciminTempDir.toString(), sourceFilePath).isEmpty()) {
                     LOGGER.info("No errors found in the file, no replacements needed.");
                     LOGGER.info("Exiting...");
                     return;

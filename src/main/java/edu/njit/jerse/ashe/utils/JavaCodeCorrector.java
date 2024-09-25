@@ -1,16 +1,5 @@
 package edu.njit.jerse.ashe.utils;
 
-import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
-import edu.njit.jerse.ashe.llm.mock.MockResponseClient;
-import edu.njit.jerse.ashe.llm.api.ApiClient;
-import edu.njit.jerse.ashe.services.CheckerFrameworkCompiler;
-import edu.njit.jerse.ashe.llm.openai.GptApiClient;
-import edu.njit.jerse.ashe.services.MethodReplacementService;
-import edu.njit.jerse.ashe.services.SpeciminTool;
-import edu.njit.jerse.config.Configuration;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import java.io.IOException;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
@@ -18,6 +7,19 @@ import java.nio.file.Paths;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import java.util.regex.Pattern;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
+
+import edu.njit.jerse.ashe.llm.api.ApiClient;
+import edu.njit.jerse.ashe.llm.mock.MockResponseClient;
+import edu.njit.jerse.ashe.llm.openai.GptApiClient;
+import edu.njit.jerse.ashe.services.CheckerFrameworkCompiler;
+import edu.njit.jerse.ashe.services.MethodReplacementService;
+import edu.njit.jerse.ashe.services.SpeciminTool;
+import edu.njit.jerse.config.Configuration;
 
 // TODO: Fix the JavaDocs on this file for formatting and accuracy.
 // TODO: Actually, check the JavaDocs on all files for formatting and accuracy.
@@ -86,7 +88,24 @@ public class JavaCodeCorrector {
     public JavaCodeCorrector() {
         this.apiClient = new MockResponseClient();
     }
-
+    
+    /**
+     * Returns the root path for a given Java file, using a method reference to resolve package structure.
+     * 
+     * @param targetFile	the path to a Java file
+     * @param targetMethod	fully qualified method name present in the file
+     * @return	root path based on targetFile path(
+     */
+    private static String getRootPath(String targetFile, String targetMethod) {
+    	Path rootPath = Path.of(targetFile);
+        long targetMethodDots = targetMethod.chars().filter(x -> x == '.').count();
+        for(long i = 0; i < targetMethodDots + 1; i++) {
+        	rootPath = rootPath.getParent();
+        	if(rootPath == null)
+        		throw new RuntimeException("Can't trace back to root path: "+targetMethod+" in file "+targetFile);
+        }
+        return rootPath.toString();
+    }
     /**
      * Utilizes GPT API to attempt to fix errors in the target Java file.
      *
@@ -99,8 +118,8 @@ public class JavaCodeCorrector {
     public boolean fixTargetFileErrorsWithModel(String targetFile, String targetMethod, String model)
             throws IOException, IllegalArgumentException,
             InterruptedException, ExecutionException, TimeoutException {
-
-        String errorOutput = checkedFileError(targetFile);
+    	String rootPath = getRootPath(targetFile, targetMethod);
+        String errorOutput = checkedFileError(rootPath, targetFile);
         if (errorOutput.isEmpty()) {
             LOGGER.info("No errors found in the file.");
             return false;
@@ -124,8 +143,8 @@ public class JavaCodeCorrector {
             }
 
             LOGGER.info("File written successfully. Recompiling with Checker Framework to check for additional warnings...");
-
-            errorOutput = checkedFileError(targetFile);
+            
+            errorOutput = checkedFileError(rootPath, targetFile);
 
             if (!errorOutput.isEmpty()) {
                 maxRetries--;
@@ -232,11 +251,11 @@ public class JavaCodeCorrector {
      * @param targetFile Path to the Java file to check.
      * @return A string detailing detected errors, or an empty string if none were found.
      */
-    public String checkedFileError(String targetFile) {
+    public String checkedFileError(String rootPath, String targetFile) {
         String errorOutput;
 
         try {
-            errorOutput = CheckerFrameworkCompiler.compileWithCheckerFramework(targetFile);
+            errorOutput = CheckerFrameworkCompiler.compileWithCheckerFramework(rootPath, targetFile);
             return errorOutput;
         } catch (IOException e) {
             LOGGER.error("An IO error occurred while trying to compile the file: " + targetFile, e);
