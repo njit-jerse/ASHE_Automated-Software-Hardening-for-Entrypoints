@@ -1,6 +1,7 @@
 package edu.njit.jerse.ashe;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
@@ -128,9 +129,15 @@ public class Ashe {
                 LOGGER.info("Skipping...");
                 return;
             }
-
-            String sourceFilePath = speciminTempDir.resolve(targetFile).toString();
-
+            Path targetPath = speciminTempDir.resolve(targetFile);
+            LOGGER.info("Adding @SuppressWarnings to methods excluding target...");
+            Files.writeString(targetPath, JavaCodeCorrector.excludeCheckerFromMethods(Files.readString(targetPath), targetMethod));    
+            String sourceFilePath = targetPath.toString();
+            
+            LOGGER.info("Adding default Nullable annotation to type declarations...");
+            Files.writeString(targetPath, JavaCodeCorrector.makeDefaultNullable(Files.readString(targetPath)));    
+            
+            
             if (model.equals(ModelValidator.DRY_RUN)) {
                 LOGGER.info("Dryrun mode enabled. Skipping error correction.");
                 return;

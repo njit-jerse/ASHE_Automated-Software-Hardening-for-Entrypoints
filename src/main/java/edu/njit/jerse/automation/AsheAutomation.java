@@ -1,20 +1,5 @@
 package edu.njit.jerse.automation;
 
-import com.github.javaparser.ParseProblemException;
-import com.github.javaparser.ParserConfiguration;
-import com.github.javaparser.StaticJavaParser;
-import com.github.javaparser.ast.CompilationUnit;
-import com.github.javaparser.ast.body.BodyDeclaration;
-import com.github.javaparser.ast.body.MethodDeclaration;
-import com.github.javaparser.ast.body.TypeDeclaration;
-import com.github.javaparser.ast.nodeTypes.NodeWithName;
-import edu.njit.jerse.ashe.Ashe;
-import edu.njit.jerse.ashe.llm.openai.models.GptModel;
-import edu.njit.jerse.ashe.utils.ModelValidator;
-import edu.njit.jerse.config.Configuration;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -23,8 +8,25 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import com.github.javaparser.ParseProblemException;
+import com.github.javaparser.ParserConfiguration;
+import com.github.javaparser.StaticJavaParser;
+import com.github.javaparser.ast.CompilationUnit;
+import com.github.javaparser.ast.body.BodyDeclaration;
+import com.github.javaparser.ast.body.MethodDeclaration;
+import com.github.javaparser.ast.body.TypeDeclaration;
+import com.github.javaparser.ast.nodeTypes.NodeWithName;
+
+import edu.njit.jerse.ashe.Ashe;
+import edu.njit.jerse.ashe.llm.openai.models.GptModel;
+import edu.njit.jerse.ashe.utils.JavaCodeCorrector;
+import edu.njit.jerse.ashe.utils.ModelValidator;
+import edu.njit.jerse.config.Configuration;
 
 /**
  * The {@code AsheAutomation} class applies {@link Ashe}'s minimization and correction mechanisms to
@@ -129,7 +131,7 @@ public class AsheAutomation {
                         if (method.isPublic()) {
                             // targetMethod - the method ASHE will target for minimization and error correction
                             // Example: edu.njit.jerse.automation.AsheAutomation#main(String[])
-                            String targetMethod = fullyQualifiedMethodReference(packageAndClassName, method);
+                            String targetMethod = JavaCodeCorrector.fullyQualifiedMethodReference(packageAndClassName, method);
 
                             Ashe.run(projectRootPath, targetFile, targetMethod, model);
                         }
@@ -169,28 +171,6 @@ public class AsheAutomation {
         return relativePath;
     }
 
-    /**
-     * Formats a fully qualified method reference that includes the package name, class name, method name,
-     * and parameter types. This reference is designed to uniquely identify the method for processing by {@link Ashe}.
-     *
-     * @param packageAndClassName the full package path and class name
-     *                            Example: com.example.foo.Bar
-     * @param method              the method declaration to identify
-     *                            Example: main(String[])
-     * @return a string that represents the fully qualified method reference
-     * Example of a fully qualified method reference: com.example.foo.Bar#main(String[])
-     */
-    private static String fullyQualifiedMethodReference(String packageAndClassName, MethodDeclaration method) {
-        String methodName = method.getNameAsString();
-        String parameters = method.getParameters().stream()
-                .map(p -> p.getType().asString())
-                .collect(Collectors.joining(", "));
-
-        String methodReference = packageAndClassName + "#" + methodName + "(" + parameters + ")";
-        LOGGER.info("Fully qualified method reference: {}", methodReference);
-
-        return methodReference;
-    }
 
     /**
      * The entry point of the application automating {@link Ashe}.
