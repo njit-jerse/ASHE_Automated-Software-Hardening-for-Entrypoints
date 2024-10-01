@@ -105,23 +105,6 @@ public class JavaCodeCorrector {
     }
     
     /**
-     * Returns the root path for a given Java file, using a method reference to resolve package structure.
-     * 
-     * @param targetFile	the path to a Java file
-     * @param targetMethod	fully qualified method name present in the file
-     * @return	root path based on targetFile path(
-     */
-    private static String getRootPath(String targetFile, String targetMethod) {
-    	Path rootPath = Path.of(targetFile);
-        long targetMethodDots = targetMethod.chars().filter(x -> x == '.').count();
-        for(long i = 0; i < targetMethodDots + 1; i++) {
-        	rootPath = rootPath.getParent();
-        	if(rootPath == null)
-        		throw new RuntimeException("Can't trace back to root path: "+targetMethod+" in file "+targetFile);
-        }
-        return rootPath.toString();
-    }
-    /**
      * Utilizes GPT API to attempt to fix errors in the target Java file.
      *
      * @param targetFile   the path to the Java file to be corrected
@@ -281,6 +264,24 @@ public class JavaCodeCorrector {
     }
 
     /**
+	 * Returns the root path for a given Java file, using a method reference to resolve package structure.
+	 * 
+	 * @param targetFile	the path to a Java file
+	 * @param targetMethod	method signature present in the file
+	 * @return	root path based on targetFile path(
+	 */
+	private static String getRootPath(String targetFile, String targetMethod) {
+		Path rootPath = Path.of(targetFile);
+	    long targetMethodDots = targetMethod.chars().filter(x -> x == '.').count();
+	    for(long i = 0; i < targetMethodDots + 1; i++) {
+	    	rootPath = rootPath.getParent();
+	    	if(rootPath == null)
+	    		throw new RuntimeException("Can't trace back to root path: "+targetMethod+" in file "+targetFile);
+	    }
+	    return rootPath.toString();
+	}
+
+	/**
      * Validates the format of the provided target file path.
      * <p>
      * The expected format is: "[path]/[to]/[package]/ClassName.java".
