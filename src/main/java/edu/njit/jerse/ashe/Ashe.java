@@ -12,6 +12,7 @@ import java.util.concurrent.TimeoutException;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.plumelib.util.FilesPlume;
 
 import edu.njit.jerse.ashe.llm.openai.models.GptModel;
 import edu.njit.jerse.ashe.services.MethodReplacementService;
@@ -162,12 +163,10 @@ public class Ashe {
             }
         } finally {
             LOGGER.info("Cleaning up temporary directory: " + speciminTempDir);
-            /**
             boolean deletedTempDir = FilesPlume.deleteDir(speciminTempDir.toFile());
             if (!deletedTempDir) {
                 LOGGER.error("Failed to delete temporary directory: " + speciminTempDir);
             }
-*/
             LOGGER.info("Exiting...");
         }
     }
