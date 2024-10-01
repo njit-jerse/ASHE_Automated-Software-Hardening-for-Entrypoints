@@ -264,11 +264,11 @@ public class JavaCodeCorrector {
     }
 
     /**
-	 * Returns the root path for a given Java file, using a method reference to resolve package structure.
+	 * Returns the root path for a given Java file, using a method signature to resolve package structure.
 	 * 
 	 * @param targetFile	the path to a Java file
 	 * @param targetMethod	method signature present in the file
-	 * @return	root path based on targetFile path(
+	 * @return	root path based on targetFile path
 	 */
 	private static String getRootPath(String targetFile, String targetMethod) {
 		Path rootPath = Path.of(targetFile);
