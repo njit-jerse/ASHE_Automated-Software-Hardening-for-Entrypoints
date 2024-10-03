@@ -402,40 +402,39 @@ public class JavaCodeCorrector {
         String packagePrefix = packageName.isEmpty() ? "" : packageName + ".";
         
         for (TypeDeclaration<?> type : compilationUnit.getTypes()) {
-            if (type.isPublic()) {
-                // Example: AsheAutomation
-                String className = type.getNameAsString();
+            // Example: AsheAutomation
+            String className = type.getNameAsString();
 
-                // Example: edu.njit.jerse.automation.AsheAutomation
-                String packageAndClassName = packagePrefix + className;
+            // Example: edu.njit.jerse.automation.AsheAutomation
+            String packageAndClassName = packagePrefix + className;
 
-				for (var methodDecl : type.getMethods()) { 
-                    String methodRef = fullyQualifiedMethodReference(packageAndClassName, methodDecl);
-					if(Objects.equals(methodRef, methodToIgnore)){
-						continue;
-					}
-					var annotation = new NormalAnnotationExpr(
-							new Name("SuppressWarnings"),
-							NodeList.nodeList(
-									new MemberValuePair("value", new StringLiteralExpr("all"))
-									
-								)
-						);
-					methodDecl.addAnnotation(annotation);
-				}
-				//TODO: extract
-				for (var fieldDecl : type.getFields()) { 
-					var annotation = new NormalAnnotationExpr(
-							new Name("SuppressWarnings"),
-							NodeList.nodeList(
-									new MemberValuePair("value", new StringLiteralExpr("all"))
-									
-								)
-						);
-					fieldDecl.addAnnotation(annotation);
-				}
+            for (var methodDecl : type.getMethods()) { 
+                String methodRef = fullyQualifiedMethodReference(packageAndClassName, methodDecl);
+                if(Objects.equals(methodRef, methodToIgnore)){
+                    continue;
+                }
+                var annotation = new NormalAnnotationExpr(
+                        new Name("SuppressWarnings"),
+                        NodeList.nodeList(
+                                new MemberValuePair("value", new StringLiteralExpr("all"))
+                                
+                            )
+                    );
+                methodDecl.addAnnotation(annotation);
+            }
+            //TODO: extract
+            for (var fieldDecl : type.getFields()) { 
+                var annotation = new NormalAnnotationExpr(
+                        new Name("SuppressWarnings"),
+                        NodeList.nodeList(
+                                new MemberValuePair("value", new StringLiteralExpr("all"))
+                                
+                            )
+                    );
+                fieldDecl.addAnnotation(annotation);
             }
         }
+        
 		return compilationUnit.toString();
 	}
 }
