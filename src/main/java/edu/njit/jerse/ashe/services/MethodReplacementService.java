@@ -264,7 +264,8 @@ public final class MethodReplacementService {
                 String[] parts = rawParam.trim().split(" ");
 
                 if (parts.length >= 2) {
-                    List<String> typeParts = Arrays.stream(Arrays.copyOf(parts, parts.length - 1))
+                    List<String> typeParts = Arrays.stream(parts)
+                    		.limit(parts.length-1)
                             .filter(Objects::nonNull)
                             .collect(Collectors.toList());
                     String typeName = String.join(" ", typeParts);

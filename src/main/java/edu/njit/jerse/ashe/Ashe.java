@@ -1,16 +1,7 @@
 package edu.njit.jerse.ashe;
 
-import edu.njit.jerse.ashe.llm.openai.models.GptModel;
-import edu.njit.jerse.ashe.services.MethodReplacementService;
-import edu.njit.jerse.ashe.services.SpeciminTool;
-import edu.njit.jerse.ashe.utils.JavaCodeCorrector;
-import edu.njit.jerse.ashe.utils.JavaCodeParser;
-import edu.njit.jerse.ashe.utils.ModelValidator;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.plumelib.util.FilesPlume;
-
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
@@ -19,6 +10,17 @@ import java.util.concurrent.TimeoutException;
 // TODO: Throughout the project, logs must be updated to fix any misleading or duplicate messages.
 // TODO: JavaDocs need to be updated throughout the project.
 // TODO: Logs and Exceptions sharing the same error message could be stored in a String.
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.plumelib.util.FilesPlume;
+
+import edu.njit.jerse.ashe.llm.openai.models.GptModel;
+import edu.njit.jerse.ashe.services.MethodReplacementService;
+import edu.njit.jerse.ashe.services.SpeciminTool;
+import edu.njit.jerse.ashe.utils.JavaCodeCorrector;
+import edu.njit.jerse.ashe.utils.JavaCodeParser;
+import edu.njit.jerse.ashe.utils.ModelValidator;
 
 /**
  * The {@code Ashe} class orchestrates the correction, minimization, and method
@@ -127,19 +129,24 @@ public class Ashe {
                 LOGGER.info("Skipping...");
                 return;
             }
-
-            String sourceFilePath = speciminTempDir.resolve(targetFile).toString();
-
+            Path targetPath = speciminTempDir.resolve(targetFile);
+            LOGGER.info("Adding @SuppressWarnings to methods excluding target...");
+            Files.writeString(targetPath, JavaCodeCorrector.excludeCheckerFromMethods(Files.readString(targetPath), targetMethod));    
+            String sourceFilePath = targetPath.toString();
+            
+            LOGGER.info("Adding default Nullable annotation to type declarations...");
+            Files.writeString(targetPath, JavaCodeCorrector.makeDefaultNullable(Files.readString(targetPath)));    
+            
+            
             if (model.equals(ModelValidator.DRY_RUN)) {
                 LOGGER.info("Dryrun mode enabled. Skipping error correction.");
                 return;
             }
-
-            LOGGER.info("Errors replaced with {} response successfully.", model);
+            LOGGER.info("Attempting to fix errors in target file...");
             boolean errorsReplacedInTargetFile = corrector.fixTargetFileErrorsWithModel(sourceFilePath, targetMethod, model);
 
             if (!errorsReplacedInTargetFile) {
-                if (corrector.checkedFileError(sourceFilePath).isEmpty()) {
+                if (corrector.checkedFileError(speciminTempDir.toString(), sourceFilePath).isEmpty()) {
                     LOGGER.info("No errors found in the file, no replacements needed.");
                     LOGGER.info("Exiting...");
                     return;
@@ -167,7 +174,6 @@ public class Ashe {
             if (!deletedTempDir) {
                 LOGGER.error("Failed to delete temporary directory: " + speciminTempDir);
             }
-
             LOGGER.info("Exiting...");
         }
     }

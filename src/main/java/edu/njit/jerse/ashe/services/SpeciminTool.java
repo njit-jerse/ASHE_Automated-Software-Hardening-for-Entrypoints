@@ -192,6 +192,13 @@ public final class SpeciminTool {
         List<String> command = new ArrayList<>();
         command.add("javac");
 
+        Configuration config = Configuration.getInstance();
+        String checkerJar = config.getPropertyValue("checker.jar.file");
+        String checkerClasspath = config.getPropertyValue("checker.classpath");
+        
+        command.add("-cp");
+        command.add(checkerJar + File.pathSeparator + checkerClasspath);
+        
         StringBuilder commandLog = new StringBuilder();
         commandLog.append("Compiling Java files:").append(System.lineSeparator());
         commandLog.append("javac");
