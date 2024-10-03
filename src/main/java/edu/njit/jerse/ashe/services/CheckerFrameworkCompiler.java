@@ -34,7 +34,7 @@ public final class CheckerFrameworkCompiler {
     /**
      * Compiles a Java class using the Checker Framework.
      *
-     * @param rootPath the path to the base directory the class is in(i.e. /src/main/java)
+     * @param rootPath the path to the base directory the class is in (i.e. /src/main/java)
      * @param classPath the path to the Java class that needs to be compiled
      * @return a string containing any errors produced during the compilation. If there are no errors,
      * an empty string is returned

@@ -275,8 +275,9 @@ public class JavaCodeCorrector {
 	    long targetMethodDots = targetMethod.chars().filter(x -> x == '.').count();
 	    for(long i = 0; i < targetMethodDots + 1; i++) {
 	    	rootPath = rootPath.getParent();
-	    	if(rootPath == null)
+	    	if(rootPath == null) {
 	    		throw new RuntimeException("Can't trace back to root path: "+targetMethod+" in file "+targetFile);
+            }
 	    }
 	    return rootPath.toString();
 	}
