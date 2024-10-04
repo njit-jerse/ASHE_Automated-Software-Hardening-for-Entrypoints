@@ -1,6 +1,19 @@
 package edu.njit.jerse.ashe.utils;
 
+import com.github.javaparser.StaticJavaParser;
+import com.github.javaparser.ast.CompilationUnit;
+import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
+import com.github.javaparser.ast.body.MethodDeclaration;
+import com.github.javaparser.ast.body.TypeDeclaration;
+import com.github.javaparser.ast.expr.FieldAccessExpr;
+import com.github.javaparser.ast.expr.MemberValuePair;
+import com.github.javaparser.ast.expr.Name;
+import com.github.javaparser.ast.expr.NameExpr;
+import com.github.javaparser.ast.expr.NormalAnnotationExpr;
+import com.github.javaparser.ast.expr.StringLiteralExpr;
+import com.github.javaparser.ast.nodeTypes.NodeWithName;
+import edu.njit.jerse.ashe.Ashe;
 import edu.njit.jerse.ashe.llm.api.ApiClient;
 import edu.njit.jerse.ashe.llm.mock.MockResponseClient;
 import edu.njit.jerse.ashe.llm.openai.GptApiClient;
@@ -12,9 +25,11 @@ import java.io.IOException;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -58,10 +73,10 @@ public class JavaCodeCorrector {
     this.apiClient =
         switch (model) {
           case ModelValidator.GPT_4 -> new GptApiClient();
-            // TODO: Add these LLM APIs to ASHE and uncomment them here.
-            // case "llama" -> new LlamaApiClient();
-            // case "palm" -> new PalmApiClient();
-            // case "grok" -> new GrokApiClient();
+          // TODO: Add these LLM APIs to ASHE and uncomment them here.
+          // case "llama" -> new LlamaApiClient();
+          // case "palm" -> new PalmApiClient();
+          // case "grok" -> new GrokApiClient();
           case ModelValidator.MOCK -> new MockResponseClient();
           default -> throw new IllegalStateException("Unexpected value: " + model);
         };
@@ -79,10 +94,10 @@ public class JavaCodeCorrector {
     this.apiClient =
         switch (model) {
           case ModelValidator.GPT_4 -> new GptApiClient();
-            // TODO: Add these LLM APIs to ASHE and uncomment them here.
-            // case "llama" -> new LlamaApiClient();
-            // case "palm" -> new PalmApiClient();
-            // case "grok" -> new GrokApiClient();
+          // TODO: Add these LLM APIs to ASHE and uncomment them here.
+          // case "llama" -> new LlamaApiClient();
+          // case "palm" -> new PalmApiClient();
+          // case "grok" -> new GrokApiClient();
           case ModelValidator.MOCK -> new MockResponseClient();
           default -> throw new IllegalStateException("Unexpected value: " + model);
         };
@@ -109,8 +124,8 @@ public class JavaCodeCorrector {
           InterruptedException,
           ExecutionException,
           TimeoutException {
-
-    String errorOutput = checkedFileError(targetFile);
+    String rootPath = getRootPath(targetFile, targetMethod);
+    String errorOutput = checkedFileError(rootPath, targetFile);
     if (errorOutput.isEmpty()) {
       LOGGER.info("No errors found in the file.");
       return false;
@@ -140,7 +155,7 @@ public class JavaCodeCorrector {
           "File written successfully. Recompiling with Checker Framework to check for additional"
               + " warnings...");
 
-      errorOutput = checkedFileError(targetFile);
+      errorOutput = checkedFileError(rootPath, targetFile);
 
       if (!errorOutput.isEmpty()) {
         maxRetries--;
@@ -261,11 +276,11 @@ public class JavaCodeCorrector {
    * @param targetFile Path to the Java file to check.
    * @return A string detailing detected errors, or an empty string if none were found.
    */
-  public String checkedFileError(String targetFile) {
+  public String checkedFileError(String rootPath, String targetFile) {
     String errorOutput;
 
     try {
-      errorOutput = CheckerFrameworkCompiler.compileWithCheckerFramework(targetFile);
+      errorOutput = CheckerFrameworkCompiler.compileWithCheckerFramework(rootPath, targetFile);
       return errorOutput;
     } catch (IOException e) {
       LOGGER.error("An IO error occurred while trying to compile the file: " + targetFile, e);
@@ -273,6 +288,28 @@ public class JavaCodeCorrector {
       // no errors were found in the checked file
       return "";
     }
+  }
+
+  /**
+   * Returns the root path for a given Java file, using a method signature to resolve package
+   * structure.
+   *
+   * @param targetFile the path to a Java file
+   * @param targetMethod method signature present in the file
+   * @return root path based on targetFile path
+   */
+  private static String getRootPath(String targetFile, String targetMethod) {
+    Path rootPath = Path.of(targetFile);
+    long targetMethodDots =
+        targetMethod.chars().takeWhile(x -> x != '(').filter(x -> x == '.').count();
+    for (long i = 0; i < targetMethodDots + 1; i++) {
+      rootPath = rootPath.getParent();
+      if (rootPath == null) {
+        throw new RuntimeException(
+            "Can't trace back to root path: " + targetMethod + " in file " + targetFile);
+      }
+    }
+    return rootPath.toString();
   }
 
   /**
@@ -322,5 +359,114 @@ public class JavaCodeCorrector {
       return input.replaceAll(",(?! )", ", ");
     }
     return input;
+  }
+
+  /**
+   * Adds the following annotation to all class declarations in the given java code:
+   *
+   * <p>{@code @org.checkerframework.framework.qual.DefaultQualifier(value =
+   * org.checkerframework.checker.nullness.qual.Nullable.class, locations =
+   * org.checkerframework.framework.qual.TypeUseLocation.PARAMETER)}
+   *
+   * <p>This causes {@code @Nullable} to be considered the default for method parameters by the
+   * Checker Framework.
+   *
+   * @param javaCode string containing Java code
+   * @return modified version of javaCode
+   */
+  public static String makeDefaultNullable(String javaCode) throws IOException {
+    CompilationUnit compilationUnit = StaticJavaParser.parse(javaCode);
+    var nullableExpr =
+        StaticJavaParser.parseExpression(
+            "org.checkerframework.checker.nullness.qual.Nullable.class");
+    var locationsExpr =
+        new FieldAccessExpr(
+            new NameExpr("org.checkerframework.framework.qual.TypeUseLocation"), "PARAMETER");
+    for (var typeDecl : compilationUnit.findAll(TypeDeclaration.class)) {
+      var annotation =
+          new NormalAnnotationExpr(
+              new Name("org.checkerframework.framework.qual.DefaultQualifier"),
+              NodeList.nodeList(
+                  new MemberValuePair("value", nullableExpr),
+                  new MemberValuePair("locations", locationsExpr)));
+      typeDecl.addAnnotation(annotation);
+    }
+
+    return compilationUnit.toString();
+  }
+
+  /**
+   * Formats a fully qualified method reference that includes the package name, class name, method
+   * name, and parameter types. This reference is designed to uniquely identify the method for
+   * processing by {@link Ashe}.
+   *
+   * @param packageAndClassName the full package path and class name Example: com.example.foo.Bar
+   * @param method the method declaration to identify Example: main(String[])
+   * @return a string that represents the fully qualified method reference Example of a fully
+   *     qualified method reference: com.example.foo.Bar#main(String[])
+   */
+  public static String fullyQualifiedMethodReference(
+      String packageAndClassName, MethodDeclaration method) {
+    String methodName = method.getNameAsString();
+    String parameters =
+        method.getParameters().stream()
+            .map(p -> p.getType().asString())
+            .collect(Collectors.joining(", "));
+
+    String methodReference = packageAndClassName + "#" + methodName + "(" + parameters + ")";
+    LOGGER.info("Fully qualified method reference: {}", methodReference);
+
+    return methodReference;
+  }
+
+  /**
+   * Adds {@code @SuppressWarnings("all")} to the methods in the given file, excluding
+   * methodToIgnore.
+   *
+   * @param javaCode string containing Java code
+   * @param methodToIgnore signature of a method to be skipped
+   * @return modified version of javaCode
+   */
+  public static String excludeCheckerFromMethods(String javaCode, String methodToIgnore)
+      throws IOException {
+    CompilationUnit compilationUnit = StaticJavaParser.parse(javaCode);
+    String packageName =
+        compilationUnit.getPackageDeclaration().map(NodeWithName::getNameAsString).orElse("");
+
+    // TODO: code taken from AsheAutomation(reuse)
+    // Example: "edu.njit.jerse.automation."
+    String packagePrefix = packageName.isEmpty() ? "" : packageName + ".";
+
+    for (TypeDeclaration<?> type : compilationUnit.getTypes()) {
+      // Example: AsheAutomation
+      String className = type.getNameAsString();
+
+      // Example: edu.njit.jerse.automation.AsheAutomation
+      String packageAndClassName = packagePrefix + className;
+
+      for (var methodDecl : type.getMethods()) {
+        String methodRef = fullyQualifiedMethodReference(packageAndClassName, methodDecl);
+        if (Objects.equals(methodRef, methodToIgnore)) {
+          continue;
+        }
+        var annotation =
+            new NormalAnnotationExpr(
+                new Name("SuppressWarnings"),
+                NodeList.nodeList(new MemberValuePair("value", new StringLiteralExpr("all"))));
+
+        methodDecl.addAnnotation(annotation);
+      }
+      // TODO: extract
+      for (var fieldDecl : type.getFields()) {
+        var annotation =
+            new NormalAnnotationExpr(
+                new Name("SuppressWarnings"),
+                NodeList.nodeList(new MemberValuePair("value", new StringLiteralExpr("all"))));
+
+        fieldDecl.addAnnotation(annotation);
+      }
+    }
+
+    return compilationUnit.toString();
   }
 }

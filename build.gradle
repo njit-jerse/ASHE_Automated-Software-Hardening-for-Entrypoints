@@ -1,6 +1,6 @@
 plugins {
     id 'java'
-    id "org.checkerframework" version "0.6.33"
+    id "org.checkerframework" version "0.6.44"
     id 'com.diffplug.spotless' version '6.25.0'
 }
 
@@ -17,7 +17,7 @@ repositories {
     mavenCentral()
 }
 
-ext.checkerFrameworkVersion = '3.38.0' // default value
+ext.checkerFrameworkVersion = '3.47.0' // default value
 
 dependencies {
     testImplementation platform('org.junit:junit-bom:5.9.1')
@@ -25,7 +25,7 @@ dependencies {
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.15.2'
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.15.2'
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-annotations', version: '2.15.2'
-    implementation 'com.github.javaparser:javaparser-core:3.23.1'
+    implementation 'com.github.javaparser:javaparser-core:3.26.2'
     implementation 'org.apache.logging.log4j:log4j-api:2.20.0'
     implementation 'org.apache.logging.log4j:log4j-core:2.20.0'
     implementation group: 'org.apache.commons', name: 'commons-csv', version: '1.10.0'

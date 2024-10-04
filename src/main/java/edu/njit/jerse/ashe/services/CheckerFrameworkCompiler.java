@@ -31,18 +31,20 @@ public final class CheckerFrameworkCompiler {
   /**
    * Compiles a Java class using the Checker Framework.
    *
+   * @param rootPath the path to the base directory the class is in (i.e. /src/main/java)
    * @param classPath the path to the Java class that needs to be compiled
    * @return a string containing any errors produced during the compilation. If there are no errors,
    *     an empty string is returned
    * @throws IOException If there's an error in executing the compilation command or reading its
    *     output
    */
-  public static String compileWithCheckerFramework(String classPath) throws IOException {
+  public static String compileWithCheckerFramework(String rootPath, String classPath)
+      throws IOException {
     LOGGER.info("Attempting to compile Java class using Checker Framework: {}", classPath);
 
     // Compilation command with Checker Framework
-    String[] command = compileCheckedClassCommand(classPath);
-    LOGGER.debug("Executing compilation command: {}", String.join(" ", command));
+    String[] command = compileCheckedClassCommand(rootPath, classPath);
+    LOGGER.info("Executing compilation command: {}", String.join(" ", command));
 
     Process compileProcess = Runtime.getRuntime().exec(command);
     String errorOutput =
@@ -50,6 +52,13 @@ public final class CheckerFrameworkCompiler {
             new InputStreamReader(compileProcess.getErrorStream(), StandardCharsets.UTF_8));
 
     String extractedError = extractError(errorOutput);
+    try {
+      int exitCode = compileProcess.waitFor();
+      if (exitCode != 0) LOGGER.info("Checker Framework did not run, exit code: " + exitCode);
+    } catch (InterruptedException e) {
+      LOGGER.info("Checker Framework interrupted.");
+    }
+
     if (extractedError.isEmpty()) {
       LOGGER.info("Compilation successful for classPath: {}", classPath);
     } else {
@@ -95,17 +104,18 @@ public final class CheckerFrameworkCompiler {
   /**
    * Constructs the compilation command for a Java class using the Checker Framework.
    *
+   * @param rootPath the path to the base directory the class is in(i.e. /src/main/java)
    * @param checkedClassPath the path to the Java class to be compiled
    * @return an array of strings representing the compilation command
    */
-  private static String[] compileCheckedClassCommand(String checkedClassPath) {
+  private static String[] compileCheckedClassCommand(String rootPath, String checkedClassPath) {
     LOGGER.info("Constructing compilation command for Java class: {}", checkedClassPath);
 
     Configuration config = Configuration.getInstance();
     String checkerJar = config.getPropertyValue("checker.jar.file");
     String checkerClasspath = config.getPropertyValue("checker.classpath");
     String checkerCommands = config.getPropertyValue("checker.commands");
-
+    checkerClasspath += File.pathSeparator + rootPath;
     String[] command = {
       "java",
       "-jar",
