@@ -137,7 +137,7 @@ public class AsheAutomation {
 
         for (BodyDeclaration<?> member : type.getMembers()) {
           if (member instanceof MethodDeclaration method) {
-            if (method.isPublic()) {
+            if (method.isPublic() && method.getBody().isPresent()) {
               // targetMethod - the method ASHE will target for minimization and error correction
               // Example: edu.njit.jerse.automation.AsheAutomation#main(String[])
               String targetMethod =

@@ -1,5 +1,6 @@
 package edu.njit.jerse.ashe.llm.openai.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
@@ -9,6 +10,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  *
  * <p>
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public record GptUsage(
     /** The number of tokens used in the input prompt. */
     @JsonProperty("prompt_tokens") int promptTokens,
