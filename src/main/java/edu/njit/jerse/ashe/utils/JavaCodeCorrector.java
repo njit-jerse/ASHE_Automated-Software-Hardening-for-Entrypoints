@@ -26,6 +26,7 @@ import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import java.util.regex.Pattern;
@@ -73,10 +74,10 @@ public class JavaCodeCorrector {
     this.apiClient =
         switch (model) {
           case ModelValidator.GPT_4 -> new GptApiClient();
-          // TODO: Add these LLM APIs to ASHE and uncomment them here.
-          // case "llama" -> new LlamaApiClient();
-          // case "palm" -> new PalmApiClient();
-          // case "grok" -> new GrokApiClient();
+            // TODO: Add these LLM APIs to ASHE and uncomment them here.
+            // case "llama" -> new LlamaApiClient();
+            // case "palm" -> new PalmApiClient();
+            // case "grok" -> new GrokApiClient();
           case ModelValidator.MOCK -> new MockResponseClient();
           default -> throw new IllegalStateException("Unexpected value: " + model);
         };
@@ -94,10 +95,10 @@ public class JavaCodeCorrector {
     this.apiClient =
         switch (model) {
           case ModelValidator.GPT_4 -> new GptApiClient();
-          // TODO: Add these LLM APIs to ASHE and uncomment them here.
-          // case "llama" -> new LlamaApiClient();
-          // case "palm" -> new PalmApiClient();
-          // case "grok" -> new GrokApiClient();
+            // TODO: Add these LLM APIs to ASHE and uncomment them here.
+            // case "llama" -> new LlamaApiClient();
+            // case "palm" -> new PalmApiClient();
+            // case "grok" -> new GrokApiClient();
           case ModelValidator.MOCK -> new MockResponseClient();
           default -> throw new IllegalStateException("Unexpected value: " + model);
         };
@@ -135,17 +136,23 @@ public class JavaCodeCorrector {
 
     while (maxRetries > 0 && !errorOutput.isEmpty()) {
       String methodName = JavaCodeParser.extractMethodName(targetMethod);
+      // TODO: this is wrong(should use fully qualified)
       ClassOrInterfaceDeclaration checkedClass =
           JavaCodeParser.extractClassByMethodName(targetFile, methodName);
-
-      String modelCorrection = fetchCorrectionFromModel(checkedClass, errorOutput, model);
+      String classWithPackage =
+          JavaCodeParser.getPackageFromName(targetMethod).map(Object::toString).orElse("")
+              + checkedClass;
+      String modelCorrection = fetchCorrectionFromModel(classWithPackage, errorOutput, model);
       if (modelCorrection.isEmpty()) {
         return false;
       }
-
+      // prepend the package declaration, since it was excluded when we extracted the class
+      Optional<MethodDeclaration> modelCorrectionMethod =
+          JavaCodeParser.extractMethodDeclaration(modelCorrection, targetMethod);
       boolean wasMethodReplaced =
-          MethodReplacementService.replaceMethodInFile(
-              targetFile, checkedClass.getNameAsString(), modelCorrection);
+          modelCorrectionMethod.isPresent()
+              && MethodReplacementService.replaceMethodInFile(
+                  targetFile, targetMethod.split("#")[0], modelCorrectionMethod.get().toString());
       if (!wasMethodReplaced) {
         LOGGER.error("Failed to write code to file.");
         return false;
@@ -186,8 +193,7 @@ public class JavaCodeCorrector {
    * @throws InterruptedException If the current thread was interrupted while waiting.
    * @throws TimeoutException If the wait timed out.
    */
-  private String fetchCorrectionFromModel(
-      ClassOrInterfaceDeclaration checkedClass, String errorOutput, String model)
+  private String fetchCorrectionFromModel(String checkedClass, String errorOutput, String model)
       throws IOException, ExecutionException, InterruptedException, TimeoutException {
 
     String prompt =

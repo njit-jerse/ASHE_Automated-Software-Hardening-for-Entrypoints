@@ -4,7 +4,6 @@ import edu.njit.jerse.ashe.llm.openai.models.GptModel;
 import edu.njit.jerse.ashe.services.MethodReplacementService;
 import edu.njit.jerse.ashe.services.SpeciminTool;
 import edu.njit.jerse.ashe.utils.JavaCodeCorrector;
-import edu.njit.jerse.ashe.utils.JavaCodeParser;
 import edu.njit.jerse.ashe.utils.ModelValidator;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -147,11 +146,11 @@ public class Ashe {
       }
       LOGGER.info("Errors replaced with {} response successfully.", model);
 
-      String methodName = JavaCodeParser.extractMethodName(targetMethod);
       final String originalFilePath = Paths.get(root, targetFile).toString();
+      
       boolean isOriginalMethodReplaced =
           MethodReplacementService.replaceOriginalTargetMethod(
-              sourceFilePath, originalFilePath, methodName);
+              sourceFilePath, originalFilePath, targetMethod);
 
       if (!isOriginalMethodReplaced) {
         String errorMessage = "Original method was not replaced.";

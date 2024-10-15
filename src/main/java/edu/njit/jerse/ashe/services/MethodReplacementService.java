@@ -51,7 +51,6 @@ public final class MethodReplacementService {
     LOGGER.info("Attempting to replace method in file: {}", absoluteFilePath);
 
     Path path = Paths.get(absoluteFilePath);
-
     MethodSignature methodSignature = JavaCodeParser.extractMethodSignature(newMethodCode);
     if (!methodSignature.isValid()) {
       LOGGER.error("Could not parse the provided method.");
@@ -68,7 +67,7 @@ public final class MethodReplacementService {
     }
 
     ClassOrInterfaceDeclaration classDec = getClassDeclaration(cu, className);
-    MethodDeclaration newMethod = createNewMethodFromSignature(methodSignature, newMethodCode);
+    MethodDeclaration newMethod = StaticJavaParser.parseMethodDeclaration(newMethodCode);
     boolean wasMethodReplaced =
         replaceMethodInClassDeclaration(classDec, newMethod, methodSignature);
     if (!wasMethodReplaced) {
@@ -225,8 +224,14 @@ public final class MethodReplacementService {
       CompilationUnit cu, String className) throws IllegalArgumentException {
     List<ClassOrInterfaceDeclaration> classes = cu.findAll(ClassOrInterfaceDeclaration.class);
 
+    String packageName = cu.getPackageDeclaration().map(x -> x.getNameAsString()).orElse("");
+
     for (ClassOrInterfaceDeclaration classOrInterface : classes) {
-      if (classOrInterface.getNameAsString().equals(className)) {
+      String fullName =
+          packageName.isEmpty()
+              ? classOrInterface.getNameAsString()
+              : packageName + "." + classOrInterface.getNameAsString();
+      if (fullName.equals(className)) {
         LOGGER.debug("Retrieved the targeted class declaration: {}", className);
         return classOrInterface;
       }
@@ -330,6 +335,7 @@ public final class MethodReplacementService {
    * @param checkedFile the path to the Java file containing the checked (Checker Framework
    *     compiled) method
    * @param targetFile the path to the Java file containing the original method to be replaced
+   * @param methodName fully qualified method name
    * @return true if the method replacement was successful; false otherwise
    * @throws IOException if an IO error occurs while extracting the class from the checked file
    * @throws NoSuchElementException if the specified method is not found in the file
@@ -338,11 +344,13 @@ public final class MethodReplacementService {
   public static boolean replaceOriginalTargetMethod(
       String checkedFile, String targetFile, String methodName)
       throws IOException, NoSuchElementException, RuntimeException {
-    ClassOrInterfaceDeclaration checkedClass =
-        JavaCodeParser.extractClassByMethodName(checkedFile, methodName);
+    Optional<MethodDeclaration> checkedMethodOpt =
+        JavaCodeParser.extractMethodDeclaration(Files.readString(Path.of(checkedFile)), methodName);
 
     boolean wasOriginalMethodReplaced =
-        replaceMethodInFile(targetFile, checkedClass.getNameAsString(), checkedClass.toString());
+        checkedMethodOpt.isPresent()
+            && replaceMethodInFile(
+                targetFile, methodName.split("#")[0], checkedMethodOpt.get().toString());
     if (!wasOriginalMethodReplaced) {
       String errorMessage = "Failed to replace the original method in the target file.";
       LOGGER.error(errorMessage);
