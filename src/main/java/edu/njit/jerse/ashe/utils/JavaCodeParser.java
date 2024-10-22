@@ -4,12 +4,10 @@ import com.github.javaparser.ParseProblemException;
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.Modifier;
-import com.github.javaparser.ast.PackageDeclaration;
 import com.github.javaparser.ast.body.BodyDeclaration;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.TypeDeclaration;
-import com.github.javaparser.ast.nodeTypes.NodeWithName;
 import com.github.javaparser.ast.stmt.BlockStmt;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -267,31 +265,25 @@ public final class JavaCodeParser {
    */
   public static Optional<MethodDeclaration> extractMethodDeclaration(
       String javaCode, String methodName) {
-    // TODO: copied from AsheAutomation(reuse)
     CompilationUnit cu;
     try {
       cu = StaticJavaParser.parse(javaCode);
     } catch (ParseProblemException ppe) {
-      LOGGER.info("Parse error: " + ppe);
-      return Optional.empty();
-    }
-    // targetFile - the Java file ASHE will target for minimization and error correction
-    // Example: edu/njit/jerse/automation/AsheAutomation.java
+      try {
+        // try checking if it outputted just a method
+        return Optional.of(StaticJavaParser.parseMethodDeclaration(javaCode));
 
-    // Get the package name if it exists, otherwise use an empty string
-    String packageName = cu.getPackageDeclaration().map(NodeWithName::getNameAsString).orElse("");
-    // Example: "edu.njit.jerse.automation."
-    String packagePrefix = packageName.isEmpty() ? "" : packageName + ".";
-    for (TypeDeclaration<?> type : cu.getTypes()) {
+      } catch (ParseProblemException ppe2) {
+        LOGGER.info("Parse error: " + ppe2);
+
+        return Optional.empty();
+      }
+    }
+    for (TypeDeclaration<?> type : cu.findAll(TypeDeclaration.class)) {
       if (type.isPublic()) {
-        // Example: AsheAutomation
-        String className = type.getNameAsString();
-        // Example: edu.njit.jerse.automation.AsheAutomation
-        String packageAndClassName = packagePrefix + className;
         for (BodyDeclaration<?> member : type.getMembers()) {
           if (member instanceof MethodDeclaration method) {
-            String fqmr =
-                JavaCodeCorrector.fullyQualifiedMethodReference(packageAndClassName, method);
+            String fqmr = JavaCodeCorrector.fullyQualifiedMethodReference(method);
             if (fqmr.equals(methodName)) {
               return Optional.of(method);
             }
@@ -300,18 +292,6 @@ public final class JavaCodeParser {
       }
     }
     return Optional.empty();
-  }
-
-  /**
-   * Extracts the package declaration, or "" if not present, from a given qualified method name.
-   *
-   * @param methodName qualified method name
-   * @return package declaration i.e. "package com.mypackage.name;" or empty if no package
-   */
-  public static Optional<PackageDeclaration> getPackageFromName(String methodName) {
-    return StaticJavaParser.parseName(methodName.split("#")[0])
-        .getQualifier()
-        .map(PackageDeclaration::new);
   }
 
   /**

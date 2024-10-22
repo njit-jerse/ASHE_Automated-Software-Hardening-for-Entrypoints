@@ -6,6 +6,7 @@ import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.Parameter;
+import edu.njit.jerse.ashe.utils.JavaCodeCorrector;
 import edu.njit.jerse.ashe.utils.JavaCodeParser;
 import edu.njit.jerse.ashe.utils.JavaCodeParser.MethodSignature;
 import edu.njit.jerse.ashe.utils.JavaCodeParser.ModifierPresent;
@@ -224,13 +225,8 @@ public final class MethodReplacementService {
       CompilationUnit cu, String className) throws IllegalArgumentException {
     List<ClassOrInterfaceDeclaration> classes = cu.findAll(ClassOrInterfaceDeclaration.class);
 
-    String packageName = cu.getPackageDeclaration().map(x -> x.getNameAsString()).orElse("");
-
     for (ClassOrInterfaceDeclaration classOrInterface : classes) {
-      String fullName =
-          packageName.isEmpty()
-              ? classOrInterface.getNameAsString()
-              : packageName + "." + classOrInterface.getNameAsString();
+      String fullName = JavaCodeCorrector.fullyQualifiedClassReference(classOrInterface);
       if (fullName.equals(className)) {
         LOGGER.debug("Retrieved the targeted class declaration: {}", className);
         return classOrInterface;

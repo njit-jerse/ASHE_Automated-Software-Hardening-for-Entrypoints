@@ -7,7 +7,6 @@ import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.body.BodyDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.TypeDeclaration;
-import com.github.javaparser.ast.nodeTypes.NodeWithName;
 import edu.njit.jerse.ashe.Ashe;
 import edu.njit.jerse.ashe.llm.openai.models.GptModel;
 import edu.njit.jerse.ashe.utils.JavaCodeCorrector;
@@ -121,28 +120,15 @@ public class AsheAutomation {
     // Example: edu/njit/jerse/automation/AsheAutomation.java
     String targetFile = formatRelativePathForJavaFile(javaFilePath, projectRootPath);
 
-    // Get the package name if it exists, otherwise use an empty string
-    String packageName = cu.getPackageDeclaration().map(NodeWithName::getNameAsString).orElse("");
-
-    // Example: "edu.njit.jerse.automation."
-    String packagePrefix = packageName.isEmpty() ? "" : packageName + ".";
-
-    for (TypeDeclaration<?> type : cu.getTypes()) {
+    for (TypeDeclaration<?> type : cu.findAll(TypeDeclaration.class)) {
       if (type.isPublic()) {
-        // Example: AsheAutomation
-        String className = type.getNameAsString();
-
-        // Example: edu.njit.jerse.automation.AsheAutomation
-        String packageAndClassName = packagePrefix + className;
-
         for (BodyDeclaration<?> member : type.getMembers()) {
           if (member instanceof MethodDeclaration method) {
             if (method.isPublic() && method.getBody().isPresent()) {
               // targetMethod - the method ASHE will target for minimization and error correction
               // Example: edu.njit.jerse.automation.AsheAutomation#main(String[])
-              String targetMethod =
-                  JavaCodeCorrector.fullyQualifiedMethodReference(packageAndClassName, method);
-
+              String targetMethod = JavaCodeCorrector.fullyQualifiedMethodReference(method);
+              LOGGER.info(targetMethod);
               Ashe.run(projectRootPath, targetFile, targetMethod, model);
             }
           }
