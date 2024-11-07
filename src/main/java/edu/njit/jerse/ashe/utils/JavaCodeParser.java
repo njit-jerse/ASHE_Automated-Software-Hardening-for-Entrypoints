@@ -4,8 +4,10 @@ import com.github.javaparser.ParseProblemException;
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.Modifier;
+import com.github.javaparser.ast.body.BodyDeclaration;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
+import com.github.javaparser.ast.body.TypeDeclaration;
 import com.github.javaparser.ast.stmt.BlockStmt;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -119,17 +121,7 @@ public final class JavaCodeParser {
   public static MethodSignature extractMethodSignature(String method)
       throws IllegalArgumentException, ParseProblemException {
     try {
-      CompilationUnit cu = StaticJavaParser.parse(method);
-      Optional<MethodDeclaration> methodDeclarationOpt = cu.findFirst(MethodDeclaration.class);
-
-      // Explicitly check if the method declaration is present
-      if (methodDeclarationOpt.isEmpty()) {
-        String errorMessage = "Invalid method string: " + method;
-        LOGGER.error(errorMessage);
-        throw new IllegalArgumentException(errorMessage);
-      }
-
-      MethodDeclaration methodDeclaration = methodDeclarationOpt.get();
+      MethodDeclaration methodDeclaration = StaticJavaParser.parseMethodDeclaration(method);
       String returnType = methodDeclaration.getType().asString();
       String name = methodDeclaration.getName().asString();
       String params = extractParameters(methodDeclaration);
@@ -245,28 +237,14 @@ public final class JavaCodeParser {
    * Extracts the body of a specified method from the given Java code string.
    *
    * @param method the entire Java method as a string
+   * @param methodName the qualified name of the method, or empty to just get the first method
    * @return the body of the method as a string
    * @throws ParseProblemException if the method cannot be parsed
    * @throws NoSuchElementException if the method declaration or body is not found
    */
   public static String extractMethodBody(String method)
       throws ParseProblemException, NoSuchElementException {
-    CompilationUnit cu;
-    try {
-      cu = StaticJavaParser.parse(method);
-    } catch (ParseProblemException ex) {
-      LOGGER.error("Failed to parse method: " + ex.getMessage());
-      throw ex;
-    }
-
-    Optional<MethodDeclaration> methodDeclarationOpt = cu.findFirst(MethodDeclaration.class);
-    if (methodDeclarationOpt.isEmpty()) {
-      String errorMessage = "Method declaration not found.";
-      LOGGER.error(errorMessage);
-      throw new NoSuchElementException(errorMessage);
-    }
-
-    MethodDeclaration methodDeclaration = methodDeclarationOpt.get();
+    MethodDeclaration methodDeclaration = StaticJavaParser.parseMethodDeclaration(method);
     Optional<BlockStmt> methodBodyOpt = methodDeclaration.getBody();
 
     if (methodBodyOpt.isEmpty()) {
@@ -276,6 +254,44 @@ public final class JavaCodeParser {
     }
 
     return methodBodyOpt.get().toString();
+  }
+
+  /**
+   * Extracts a MethodDeclaration from Java code using a fully qualified method name.
+   *
+   * @param javaCode java code containing a method
+   * @param methodName fully qualified method reference for the method
+   * @return MethodDeclaration representing the target method
+   */
+  public static Optional<MethodDeclaration> extractMethodDeclaration(
+      String javaCode, String methodName) {
+    CompilationUnit cu;
+    try {
+      cu = StaticJavaParser.parse(javaCode);
+    } catch (ParseProblemException ppe) {
+      try {
+        // try checking if it outputted just a method
+        return Optional.of(StaticJavaParser.parseMethodDeclaration(javaCode));
+
+      } catch (ParseProblemException ppe2) {
+        LOGGER.info("Parse error: " + ppe2);
+
+        return Optional.empty();
+      }
+    }
+    for (TypeDeclaration<?> type : cu.findAll(TypeDeclaration.class)) {
+      if (type.isPublic()) {
+        for (BodyDeclaration<?> member : type.getMembers()) {
+          if (member instanceof MethodDeclaration method) {
+            String fqmr = JavaCodeCorrector.fullyQualifiedMethodReference(method);
+            if (fqmr.equals(methodName)) {
+              return Optional.of(method);
+            }
+          }
+        }
+      }
+    }
+    return Optional.empty();
   }
 
   /**

@@ -2,6 +2,7 @@ package edu.njit.jerse.ashe.utils;
 
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
+import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
@@ -12,7 +13,6 @@ import com.github.javaparser.ast.expr.Name;
 import com.github.javaparser.ast.expr.NameExpr;
 import com.github.javaparser.ast.expr.NormalAnnotationExpr;
 import com.github.javaparser.ast.expr.StringLiteralExpr;
-import com.github.javaparser.ast.nodeTypes.NodeWithName;
 import edu.njit.jerse.ashe.Ashe;
 import edu.njit.jerse.ashe.llm.api.ApiClient;
 import edu.njit.jerse.ashe.llm.mock.MockResponseClient;
@@ -26,6 +26,7 @@ import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import java.util.regex.Pattern;
@@ -73,10 +74,10 @@ public class JavaCodeCorrector {
     this.apiClient =
         switch (model) {
           case ModelValidator.GPT_4 -> new GptApiClient();
-          // TODO: Add these LLM APIs to ASHE and uncomment them here.
-          // case "llama" -> new LlamaApiClient();
-          // case "palm" -> new PalmApiClient();
-          // case "grok" -> new GrokApiClient();
+            // TODO: Add these LLM APIs to ASHE and uncomment them here.
+            // case "llama" -> new LlamaApiClient();
+            // case "palm" -> new PalmApiClient();
+            // case "grok" -> new GrokApiClient();
           case ModelValidator.MOCK -> new MockResponseClient();
           default -> throw new IllegalStateException("Unexpected value: " + model);
         };
@@ -94,10 +95,10 @@ public class JavaCodeCorrector {
     this.apiClient =
         switch (model) {
           case ModelValidator.GPT_4 -> new GptApiClient();
-          // TODO: Add these LLM APIs to ASHE and uncomment them here.
-          // case "llama" -> new LlamaApiClient();
-          // case "palm" -> new PalmApiClient();
-          // case "grok" -> new GrokApiClient();
+            // TODO: Add these LLM APIs to ASHE and uncomment them here.
+            // case "llama" -> new LlamaApiClient();
+            // case "palm" -> new PalmApiClient();
+            // case "grok" -> new GrokApiClient();
           case ModelValidator.MOCK -> new MockResponseClient();
           default -> throw new IllegalStateException("Unexpected value: " + model);
         };
@@ -135,17 +136,21 @@ public class JavaCodeCorrector {
 
     while (maxRetries > 0 && !errorOutput.isEmpty()) {
       String methodName = JavaCodeParser.extractMethodName(targetMethod);
+      // TODO: this is wrong(should use fully qualified)
       ClassOrInterfaceDeclaration checkedClass =
           JavaCodeParser.extractClassByMethodName(targetFile, methodName);
-
-      String modelCorrection = fetchCorrectionFromModel(checkedClass, errorOutput, model);
+      String classWithPackage = JavaCodeCorrector.fullyQualifiedClassReference(checkedClass);
+      String modelCorrection = fetchCorrectionFromModel(classWithPackage, errorOutput, model);
       if (modelCorrection.isEmpty()) {
         return false;
       }
-
+      // prepend the package declaration, since it was excluded when we extracted the class
+      Optional<MethodDeclaration> modelCorrectionMethod =
+          JavaCodeParser.extractMethodDeclaration(modelCorrection, targetMethod);
       boolean wasMethodReplaced =
-          MethodReplacementService.replaceMethodInFile(
-              targetFile, checkedClass.getNameAsString(), modelCorrection);
+          modelCorrectionMethod.isPresent()
+              && MethodReplacementService.replaceMethodInFile(
+                  targetFile, targetMethod.split("#")[0], modelCorrectionMethod.get().toString());
       if (!wasMethodReplaced) {
         LOGGER.error("Failed to write code to file.");
         return false;
@@ -186,8 +191,7 @@ public class JavaCodeCorrector {
    * @throws InterruptedException If the current thread was interrupted while waiting.
    * @throws TimeoutException If the wait timed out.
    */
-  private String fetchCorrectionFromModel(
-      ClassOrInterfaceDeclaration checkedClass, String errorOutput, String model)
+  private String fetchCorrectionFromModel(String checkedClass, String errorOutput, String model)
       throws IOException, ExecutionException, InterruptedException, TimeoutException {
 
     String prompt =
@@ -396,23 +400,54 @@ public class JavaCodeCorrector {
   }
 
   /**
+   * Formats a fully qualified class reference that includes the package name and class name. Used
+   * primarily as part of {@link #fullyQualifiedMethodReference(MethodDeclaration)}.
+   *
+   * @param type TypeDeclaration containing the target type
+   * @return a string that represents the fully qualified class reference Example of a fully
+   *     qualified method reference: com.example.foo.Bar
+   */
+  public static String fullyQualifiedClassReference(TypeDeclaration<?> type) {
+    StringBuilder packageAndClassName = new StringBuilder();
+    Node currentNode = type;
+    while (currentNode != null) {
+      if (currentNode instanceof TypeDeclaration<?> typeDecl) {
+        // Prepend class name
+        packageAndClassName.insert(0, typeDecl.getNameAsString() + ".");
+      } else if (currentNode instanceof CompilationUnit compilationUnit) {
+        // Prepend package name if it exists
+        compilationUnit
+            .getPackageDeclaration()
+            .ifPresent(pkg -> packageAndClassName.insert(0, pkg.getNameAsString() + "."));
+      }
+      currentNode = currentNode.getParentNode().orElse(null);
+    }
+    packageAndClassName.deleteCharAt(packageAndClassName.length() - 1);
+    return packageAndClassName.toString();
+  }
+
+  /**
    * Formats a fully qualified method reference that includes the package name, class name, method
    * name, and parameter types. This reference is designed to uniquely identify the method for
    * processing by {@link Ashe}.
    *
-   * @param packageAndClassName the full package path and class name Example: com.example.foo.Bar
    * @param method the method declaration to identify Example: main(String[])
    * @return a string that represents the fully qualified method reference Example of a fully
    *     qualified method reference: com.example.foo.Bar#main(String[])
    */
-  public static String fullyQualifiedMethodReference(
-      String packageAndClassName, MethodDeclaration method) {
+  public static String fullyQualifiedMethodReference(MethodDeclaration method) {
     String methodName = method.getNameAsString();
     String parameters =
         method.getParameters().stream()
             .map(p -> p.getType().asString())
             .collect(Collectors.joining(", "));
-
+    Optional<Node> parent = method.getParentNode();
+    String packageAndClassName;
+    if (parent.isPresent() && parent.get() instanceof TypeDeclaration<?> typeDecl) {
+      packageAndClassName = fullyQualifiedClassReference(typeDecl);
+    } else {
+      throw new RuntimeException("Method parent is not a type declaration.");
+    }
     String methodReference = packageAndClassName + "#" + methodName + "(" + parameters + ")";
     LOGGER.info("Fully qualified method reference: {}", methodReference);
 
@@ -430,22 +465,9 @@ public class JavaCodeCorrector {
   public static String excludeCheckerFromMethods(String javaCode, String methodToIgnore)
       throws IOException {
     CompilationUnit compilationUnit = StaticJavaParser.parse(javaCode);
-    String packageName =
-        compilationUnit.getPackageDeclaration().map(NodeWithName::getNameAsString).orElse("");
-
-    // TODO: code taken from AsheAutomation(reuse)
-    // Example: "edu.njit.jerse.automation."
-    String packagePrefix = packageName.isEmpty() ? "" : packageName + ".";
-
-    for (TypeDeclaration<?> type : compilationUnit.getTypes()) {
-      // Example: AsheAutomation
-      String className = type.getNameAsString();
-
-      // Example: edu.njit.jerse.automation.AsheAutomation
-      String packageAndClassName = packagePrefix + className;
-
+    for (TypeDeclaration<?> type : compilationUnit.findAll(TypeDeclaration.class)) {
       for (var methodDecl : type.getMethods()) {
-        String methodRef = fullyQualifiedMethodReference(packageAndClassName, methodDecl);
+        String methodRef = fullyQualifiedMethodReference(methodDecl);
         if (Objects.equals(methodRef, methodToIgnore)) {
           continue;
         }
