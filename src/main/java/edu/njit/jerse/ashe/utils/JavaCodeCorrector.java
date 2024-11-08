@@ -61,6 +61,7 @@ public class JavaCodeCorrector {
       Pattern.compile("([a-zA-Z_0-9]+/)*[a-zA-Z_0-9]+\\.java");
   private static final Pattern TARGET_METHOD_PATTERN =
       Pattern.compile("[a-zA-Z_0-9]+(\\.[a-zA-Z_0-9]+)*#[a-zA-Z_0-9]+\\([^\\)]*\\)");
+  private static final Pattern PACKAGE_SEPARATOR = Pattern.compile("\\.[a-z]");
   private final ApiClient apiClient;
   private int maxRetries = 3; // default maxRetries set to 3
 
@@ -304,9 +305,12 @@ public class JavaCodeCorrector {
    */
   private static String getRootPath(String targetFile, String targetMethod) {
     Path rootPath = Path.of(targetFile);
-    long targetMethodDots =
-        targetMethod.chars().takeWhile(x -> x != '(').filter(x -> x == '.').count();
-    for (long i = 0; i < targetMethodDots + 1; i++) {
+    // com.example.foo.Bar
+    // -> 2 separators .e, .f
+    // -> we want to go up 3 directories
+    long targetMethodPackageDots =
+        PACKAGE_SEPARATOR.split(targetMethod.substring(0, targetMethod.indexOf("("))).length;
+    for (long i = 0; i < targetMethodPackageDots + 1; i++) {
       rootPath = rootPath.getParent();
       if (rootPath == null) {
         throw new RuntimeException(
