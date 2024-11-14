@@ -140,8 +140,8 @@ public class JavaCodeCorrector {
       // TODO: this is wrong(should use fully qualified)
       ClassOrInterfaceDeclaration checkedClass =
           JavaCodeParser.extractClassByMethodName(targetFile, methodName);
-      String classWithPackage = JavaCodeCorrector.fullyQualifiedClassReference(checkedClass);
-      String modelCorrection = fetchCorrectionFromModel(classWithPackage, errorOutput, model);
+      String modelCorrection =
+          fetchCorrectionFromModel(checkedClass.toString(), errorOutput, model);
       if (modelCorrection.isEmpty()) {
         return false;
       }
