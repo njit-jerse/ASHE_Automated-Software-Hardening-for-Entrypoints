@@ -297,8 +297,9 @@ public final class JavaCodeParser {
           .getQualifier()
           .map(PackageDeclaration::new)
           .ifPresent(cu::setPackageDeclaration);
-      if (cu.getPackageDeclaration().isPresent())
+      if (cu.getPackageDeclaration().isPresent()) {
         return extractMethodDeclaration(cu.toString(), methodName);
+      }
     }
     return Optional.empty();
   }
