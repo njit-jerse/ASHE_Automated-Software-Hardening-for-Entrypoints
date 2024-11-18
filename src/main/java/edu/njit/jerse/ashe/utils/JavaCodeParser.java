@@ -4,8 +4,8 @@ import com.github.javaparser.ParseProblemException;
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.Modifier;
+import com.github.javaparser.ast.PackageDeclaration;
 import com.github.javaparser.ast.body.BodyDeclaration;
-import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.TypeDeclaration;
 import com.github.javaparser.ast.stmt.BlockStmt;
@@ -291,6 +291,16 @@ public final class JavaCodeParser {
         }
       }
     }
+    // if gpt removed package declaration, try adding it
+    if (cu.getPackageDeclaration().isEmpty()) {
+      StaticJavaParser.parseName(methodName.split("#")[0])
+          .getQualifier()
+          .map(PackageDeclaration::new)
+          .ifPresent(cu::setPackageDeclaration);
+      if (cu.getPackageDeclaration().isPresent()) {
+        return extractMethodDeclaration(cu.toString(), methodName);
+      }
+    }
     return Optional.empty();
   }
 
@@ -305,8 +315,7 @@ public final class JavaCodeParser {
    * @throws ParseProblemException if the file cannot be parsed
    * @throws NoSuchElementException if the specified method is not found in the file
    */
-  public static ClassOrInterfaceDeclaration extractClassByMethodName(
-      String filePath, String methodName)
+  public static TypeDeclaration<?> extractClassByMethodName(String filePath, String methodName)
       throws IOException, ParseProblemException, NoSuchElementException {
     CompilationUnit cu;
     try (FileInputStream fis = new FileInputStream(filePath)) {
@@ -319,19 +328,19 @@ public final class JavaCodeParser {
       throw ex;
     }
 
-    List<ClassOrInterfaceDeclaration> classes = cu.findAll(ClassOrInterfaceDeclaration.class);
+    var classes = cu.findAll(TypeDeclaration.class);
 
-    Optional<ClassOrInterfaceDeclaration> classOrInterfaceOpt =
+    var typeOpt =
         classes.stream()
             .filter(
                 declaration ->
-                    declaration.getMethods().stream()
-                        .anyMatch(method -> method.getNameAsString().equals(methodName)))
+                    declaration.findAll(MethodDeclaration.class).stream()
+                        .anyMatch(method -> (method.getNameAsString().equals(methodName))))
             .findFirst();
 
-    if (classOrInterfaceOpt.isEmpty()) {
+    if (typeOpt.isEmpty()) {
       String errorMessage =
-          "No class or interface declarations containing the method "
+          "No type declarations containing the method "
               + methodName
               + " found in file: "
               + filePath;
@@ -339,7 +348,7 @@ public final class JavaCodeParser {
       throw new NoSuchElementException(errorMessage);
     }
 
-    return classOrInterfaceOpt.get();
+    return typeOpt.get();
   }
 
   /**

@@ -4,7 +4,6 @@ import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.NodeList;
-import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.TypeDeclaration;
 import com.github.javaparser.ast.expr.FieldAccessExpr;
@@ -138,10 +137,10 @@ public class JavaCodeCorrector {
     while (maxRetries > 0 && !errorOutput.isEmpty()) {
       String methodName = JavaCodeParser.extractMethodName(targetMethod);
       // TODO: this is wrong(should use fully qualified)
-      ClassOrInterfaceDeclaration checkedClass =
+      TypeDeclaration<?> checkedClass =
           JavaCodeParser.extractClassByMethodName(targetFile, methodName);
-      String classWithPackage = JavaCodeCorrector.fullyQualifiedClassReference(checkedClass);
-      String modelCorrection = fetchCorrectionFromModel(classWithPackage, errorOutput, model);
+      String modelCorrection =
+          fetchCorrectionFromModel(checkedClass.toString(), errorOutput, model);
       if (modelCorrection.isEmpty()) {
         return false;
       }

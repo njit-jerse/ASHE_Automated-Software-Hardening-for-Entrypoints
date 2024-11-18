@@ -3,9 +3,9 @@ package edu.njit.jerse.ashe.services;
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.NodeList;
-import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.Parameter;
+import com.github.javaparser.ast.body.TypeDeclaration;
 import edu.njit.jerse.ashe.utils.JavaCodeCorrector;
 import edu.njit.jerse.ashe.utils.JavaCodeParser;
 import edu.njit.jerse.ashe.utils.JavaCodeParser.MethodSignature;
@@ -67,10 +67,10 @@ public final class MethodReplacementService {
       return false;
     }
 
-    ClassOrInterfaceDeclaration classDec = getClassDeclaration(cu, className);
+    TypeDeclaration<?> typeDec = getClassDeclaration(cu, className);
     MethodDeclaration newMethod = StaticJavaParser.parseMethodDeclaration(newMethodCode);
     boolean wasMethodReplaced =
-        replaceMethodInClassDeclaration(classDec, newMethod, methodSignature);
+        replaceMethodInClassDeclaration(typeDec, newMethod, methodSignature);
     if (!wasMethodReplaced) {
       LOGGER.error("No matching method found to replace in file: {}", absoluteFilePath);
       return false;
@@ -90,8 +90,7 @@ public final class MethodReplacementService {
    * Replaces a method in the specified class declaration with a new method if it matches the
    * provided method signature.
    *
-   * @param classDecl the class or interface declaration where the method replacement should be
-   *     performed
+   * @param classDecl the type declaration where the method replacement should be performed
    * @param newMethod the new method declaration that will replace the existing method if a match is
    *     found
    * @param methodSignature the signature of the method to be replaced. Replacement is done based on
@@ -100,9 +99,7 @@ public final class MethodReplacementService {
    *     false} otherwise
    */
   private static boolean replaceMethodInClassDeclaration(
-      ClassOrInterfaceDeclaration classDecl,
-      MethodDeclaration newMethod,
-      MethodSignature methodSignature) {
+      TypeDeclaration<?> classDecl, MethodDeclaration newMethod, MethodSignature methodSignature) {
     for (MethodDeclaration method : classDecl.getMethods()) {
       // If method has the same signature as the one we want to replace, replace it
       if (doesMethodSignatureMatch(method, methodSignature)) {
@@ -221,15 +218,15 @@ public final class MethodReplacementService {
    * @return the declaration of the target class or interface
    * @throws IllegalArgumentException if the target class declaration is not found
    */
-  private static ClassOrInterfaceDeclaration getClassDeclaration(
-      CompilationUnit cu, String className) throws IllegalArgumentException {
-    List<ClassOrInterfaceDeclaration> classes = cu.findAll(ClassOrInterfaceDeclaration.class);
+  private static TypeDeclaration<?> getClassDeclaration(CompilationUnit cu, String className)
+      throws IllegalArgumentException {
+    var classes = cu.findAll(TypeDeclaration.class);
 
-    for (ClassOrInterfaceDeclaration classOrInterface : classes) {
-      String fullName = JavaCodeCorrector.fullyQualifiedClassReference(classOrInterface);
+    for (TypeDeclaration<?> type : classes) {
+      String fullName = JavaCodeCorrector.fullyQualifiedClassReference(type);
       if (fullName.equals(className)) {
         LOGGER.debug("Retrieved the targeted class declaration: {}", className);
-        return classOrInterface;
+        return type;
       }
     }
 
