@@ -8,6 +8,7 @@ import com.github.javaparser.ast.PackageDeclaration;
 import com.github.javaparser.ast.body.BodyDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.TypeDeclaration;
+import com.github.javaparser.ast.expr.Name;
 import com.github.javaparser.ast.stmt.BlockStmt;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -30,6 +31,7 @@ public final class JavaCodeParser {
   private static final Logger LOGGER = LogManager.getLogger(JavaCodeParser.class);
   private static final Pattern JavaCodeBlockPattern =
       Pattern.compile("```java(.*?)```", Pattern.DOTALL);
+  private static final Pattern CLASS_NAME_IN_METHOD_REF = Pattern.compile("(^|\\.)[A-Z]");
 
   /**
    * Private constructor to prevent instantiation.
@@ -280,24 +282,20 @@ public final class JavaCodeParser {
       }
     }
     for (TypeDeclaration<?> type : cu.findAll(TypeDeclaration.class)) {
-      if (type.isPublic()) {
-        for (BodyDeclaration<?> member : type.getMembers()) {
-          if (member instanceof MethodDeclaration method) {
-            String fqmr = JavaCodeCorrector.fullyQualifiedMethodReference(method);
-            if (fqmr.equals(methodName)) {
-              return Optional.of(method);
-            }
+      for (BodyDeclaration<?> member : type.getMembers()) {
+        if (member instanceof MethodDeclaration method) {
+          String fqmr = JavaCodeCorrector.fullyQualifiedMethodReference(method);
+          if (fqmr.equals(methodName)) {
+            return Optional.of(method);
           }
         }
       }
     }
     // if gpt removed package declaration, try adding it
     if (cu.getPackageDeclaration().isEmpty()) {
-      StaticJavaParser.parseName(methodName.split("#")[0])
-          .getQualifier()
-          .map(PackageDeclaration::new)
-          .ifPresent(cu::setPackageDeclaration);
-      if (cu.getPackageDeclaration().isPresent()) {
+      String packageString = CLASS_NAME_IN_METHOD_REF.split(methodName.split("#")[0], -1)[0];
+      if (!packageString.isEmpty()) {
+        cu.setPackageDeclaration(new PackageDeclaration(new Name(packageString)));
         return extractMethodDeclaration(cu.toString(), methodName);
       }
     }
