@@ -19,8 +19,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Stream;
+import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -48,31 +50,60 @@ public class AsheAutomation {
    * @param rootPath the root path of the project, used for determining the relative path of each
    *     Java file within the project structure
    * @param model the model to use for error correction
-   * @throws IOException if an I/O error occurs while accessing the directory
+   * @throws IOException if an I/O error occurs while accessing the directory Multithreading notes
+   *     If ASHE is running in dry run mode it will use all available cores/threads and copy the
+   *     input to a temporary folder to prevent specimin from "cleaning up" files that another
+   *     thread needs. If not performing a dry run a single thread will be used.
    */
   public static void processAllJavaFiles(Path dirPath, String rootPath, String model)
       throws IOException {
     LOGGER.info("Iterating over Java files in {}", dirPath);
-
+    int threads = 1;
+    if (model.equals(ModelValidator.DRY_RUN)) {
+      threads = Runtime.getRuntime().availableProcessors();
+      LOGGER.info("Dry run with {} threads", threads);
+    }
+    ForkJoinPool filePool = new ForkJoinPool(threads);
     try (Stream<Path> paths = Files.walk(dirPath)) {
-      paths
-          .filter(Files::isRegularFile)
-          // include only files with .java extension
-          .filter(
-              path -> path.getFileName() != null && path.getFileName().toString().endsWith(".java"))
-          .forEach(
-              path -> {
-                try {
-                  processSingleJavaFile(path, rootPath, model);
-                } catch (IOException
-                    | ExecutionException
-                    | InterruptedException
-                    | TimeoutException e) {
-                  String errorMessage = "Error processing Java file: " + path;
-                  LOGGER.error(errorMessage, e);
-                  throw new RuntimeException(errorMessage, e);
-                }
-              });
+      filePool
+          .submit(
+              () -> {
+                paths
+                    .filter(Files::isRegularFile)
+                    // include only files with .java extension
+                    .filter(
+                        path ->
+                            path.getFileName() != null
+                                && path.getFileName().toString().endsWith(".java"))
+                    .parallel()
+                    .forEach(
+                        path -> {
+                          try {
+                            // skip copying files if not dry run mode
+                            if (model.equals(ModelValidator.DRY_RUN)) {
+                              Path copiedPath =
+                                  Files.createTempDirectory(
+                                      "ASHE_THREAD_" + Thread.currentThread().getId() + "_");
+                              FileUtils.copyDirectory(
+                                  Paths.get(rootPath).toFile(), copiedPath.toFile());
+                              Path pathWithPrefix =
+                                  Paths.get(
+                                      path.toString().replace(rootPath, copiedPath.toString()));
+                              processSingleJavaFile(pathWithPrefix, copiedPath.toString(), model);
+                            } else {
+                              processSingleJavaFile(path, rootPath, model);
+                            }
+                          } catch (IOException
+                              | ExecutionException
+                              | InterruptedException
+                              | TimeoutException e) {
+                            String errorMessage = "Error processing Java file: " + path;
+                            LOGGER.error(errorMessage, e);
+                            throw new RuntimeException(errorMessage, e);
+                          }
+                        });
+              })
+          .join();
     }
     LOGGER.info("Completed iterating over Java files in {}", dirPath);
   }
