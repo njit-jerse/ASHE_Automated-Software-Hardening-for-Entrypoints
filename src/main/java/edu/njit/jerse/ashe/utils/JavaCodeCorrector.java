@@ -454,9 +454,6 @@ public class JavaCodeCorrector {
                   return type;
                 })
             .collect(Collectors.joining(", "));
-
-    LOGGER.info("\nmethodName = " + methodName + "\nparameters = " + parameters + "\n");
-
     Optional<Node> parent = method.getParentNode();
     String packageAndClassName;
     if (parent.isPresent() && parent.get() instanceof TypeDeclaration<?> typeDecl) {
