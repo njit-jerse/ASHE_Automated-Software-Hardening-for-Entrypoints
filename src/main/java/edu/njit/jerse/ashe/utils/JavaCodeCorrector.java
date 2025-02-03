@@ -449,8 +449,15 @@ public class JavaCodeCorrector {
                   Parameter p = method.getParameters().get(i);
                   String type = p.getType().asString();
                   if (p.isVarArgs()) {
-                    type = type.replace("...", "") + "...";
+                    /* this line appends an elipsis to the end of parameters
+                     * that are VarArgs so that specimin finds them */
+
+                    /* concatenate(T[], T...) is recognised as
+                     * concatenate(T{}, T) otherwise, as the elipsis is not considered
+                     * part of the type by javaparser*/
+                    return type + "...";
                   }
+                  LOGGER.info(method + " parameter " + i + ": " + type);
                   return type;
                 })
             .collect(Collectors.joining(", "));
