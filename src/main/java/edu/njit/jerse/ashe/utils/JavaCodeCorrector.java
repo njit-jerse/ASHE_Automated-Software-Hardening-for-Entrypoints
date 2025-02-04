@@ -5,6 +5,7 @@ import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.MethodDeclaration;
+import com.github.javaparser.ast.body.Parameter;
 import com.github.javaparser.ast.body.TypeDeclaration;
 import com.github.javaparser.ast.expr.FieldAccessExpr;
 import com.github.javaparser.ast.expr.MemberValuePair;
@@ -30,6 +31,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -441,8 +443,23 @@ public class JavaCodeCorrector {
   public static String fullyQualifiedMethodReference(MethodDeclaration method) {
     String methodName = method.getNameAsString();
     String parameters =
-        method.getParameters().stream()
-            .map(p -> p.getType().asString())
+        IntStream.range(0, method.getParameters().size())
+            .mapToObj(
+                i -> {
+                  Parameter p = method.getParameters().get(i);
+                  String type = p.getType().asString();
+                  if (p.isVarArgs()) {
+                    /* this line appends an elipsis to the end of parameters
+                     * that are VarArgs so that specimin finds them */
+
+                    /* concatenate(T[], T...) is recognised as
+                     * concatenate(T{}, T) otherwise, as the elipsis is not considered
+                     * part of the type by javaparser*/
+                    return type + "...";
+                  }
+                  LOGGER.info(method + " parameter " + i + ": " + type);
+                  return type;
+                })
             .collect(Collectors.joining(", "));
     Optional<Node> parent = method.getParentNode();
     String packageAndClassName;
