@@ -70,7 +70,8 @@ public final class SpeciminTool {
     // This is a fail-safe in case Ashe#run fails to delete the temporary directory.
     tempDir.toFile().deleteOnExit();
 
-    String argsWithOption = formatSpeciminArgs(tempDir.toString(), root, targetFile, targetMethod);
+    List<String> argsWithOption =
+        formatSpeciminArgs(tempDir.toString(), root, targetFile, targetMethod);
 
     List<String> commands = prepareCommands(speciminPath, argsWithOption);
 
@@ -90,12 +91,19 @@ public final class SpeciminTool {
    * @param targetMethod Method to be targeted by the tool.
    * @return Formatted string of arguments.
    */
-  private static String formatSpeciminArgs(
+  private static List<String> formatSpeciminArgs(
       String outputDirectory, String root, String targetFile, String targetMethod) {
     String adjustedTargetMethod = JavaCodeCorrector.ensureWhitespaceAfterCommas(targetMethod);
-    return String.format(
-        "--outputDirectory %s" + " --root %s" + " --targetFile %s" + " --targetMethod %s",
-        outputDirectory, root, targetFile, adjustedTargetMethod);
+    List<String> arguments = new ArrayList<>();
+    arguments.add("--outputDirectory");
+    arguments.add(outputDirectory);
+    arguments.add("--root");
+    arguments.add(root);
+    arguments.add("--targetFile");
+    arguments.add(targetFile);
+    arguments.add("--targetMethod");
+    arguments.add(adjustedTargetMethod);
+    return arguments;
   }
 
   /**
@@ -105,16 +113,8 @@ public final class SpeciminTool {
    * @param argsWithOption Formatted arguments string.
    * @return List of commands for execution.
    */
-  private static List<String> prepareCommands(String speciminPath, String argsWithOption) {
+  private static List<String> prepareCommands(String speciminPath, List<String> argsWithOption) {
     List<String> commands = new ArrayList<>();
-    // java -cp
-    // <speciminPath>/build/libs/specimin.jar:<speciminPath>/build/libs/specimin-sources.jar
-    // org.checkerframework.specimin.speciminrunner
-    // commands.add(speciminPath + "/gradlew");
-    // commands.add("run");
-    // commands.add("--no-daemon");
-    // commands.add(argsWithOption);
-
     commands.add("java");
     commands.add("-cp");
     commands.add(
@@ -123,7 +123,7 @@ public final class SpeciminTool {
             + speciminPath
             + "/build/libs/specimin-sources.jar");
     commands.add("org.checkerframework.specimin.SpeciminRunner");
-    for (String argument : argsWithOption.split(" ")) {
+    for (String argument : argsWithOption) {
       commands.add(argument);
     }
     return commands;
