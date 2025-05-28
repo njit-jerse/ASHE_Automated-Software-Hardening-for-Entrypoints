@@ -94,11 +94,7 @@ public final class SpeciminTool {
       String outputDirectory, String root, String targetFile, String targetMethod) {
     String adjustedTargetMethod = JavaCodeCorrector.ensureWhitespaceAfterCommas(targetMethod);
     return String.format(
-        "--args="
-            + "--outputDirectory \"%s\" "
-            + "--root \"%s\" "
-            + "--targetFile \"%s\" "
-            + "--targetMethod \"%s\"",
+        "--outputDirectory %s" + " --root %s" + " --targetFile %s" + " --targetMethod %s",
         outputDirectory, root, targetFile, adjustedTargetMethod);
   }
 
@@ -111,9 +107,25 @@ public final class SpeciminTool {
    */
   private static List<String> prepareCommands(String speciminPath, String argsWithOption) {
     List<String> commands = new ArrayList<>();
-    commands.add(speciminPath + "/gradlew");
-    commands.add("run");
-    commands.add(argsWithOption);
+    // java -cp
+    // <speciminPath>/build/libs/specimin.jar:<speciminPath>/build/libs/specimin-sources.jar
+    // org.checkerframework.specimin.speciminrunner
+    // commands.add(speciminPath + "/gradlew");
+    // commands.add("run");
+    // commands.add("--no-daemon");
+    // commands.add(argsWithOption);
+
+    commands.add("java");
+    commands.add("-cp");
+    commands.add(
+        speciminPath
+            + "/build/libs/specimin.jar:"
+            + speciminPath
+            + "/build/libs/specimin-sources.jar");
+    commands.add("org.checkerframework.specimin.SpeciminRunner");
+    for (String argument : argsWithOption.split(" ")) {
+      commands.add(argument);
+    }
     return commands;
   }
 
@@ -124,9 +136,7 @@ public final class SpeciminTool {
    */
   private static void logCommands(List<String> commands) {
     LOGGER.info("Executing command:");
-    for (String command : commands) {
-      LOGGER.info(command);
-    }
+    LOGGER.info(String.join(" ", commands));
   }
 
   /**
