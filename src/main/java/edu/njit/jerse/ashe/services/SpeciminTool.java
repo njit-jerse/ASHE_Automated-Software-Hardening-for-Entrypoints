@@ -120,8 +120,6 @@ public final class SpeciminTool {
     commands.add(
         speciminPath
             + "/build/libs/specimin.jar:"
-            + speciminPath
-            + "/build/libs/specimin-sources.jar");
     commands.add("org.checkerframework.specimin.SpeciminRunner");
     for (String argument : argsWithOption) {
       commands.add(argument);
