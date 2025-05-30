@@ -117,9 +117,7 @@ public final class SpeciminTool {
     List<String> commands = new ArrayList<>();
     commands.add("java");
     commands.add("-cp");
-    commands.add(
-        speciminPath
-            + "/build/libs/specimin.jar:"
+    commands.add(speciminPath + "/build/libs/specimin.jar:");
     commands.add("org.checkerframework.specimin.SpeciminRunner");
     for (String argument : argsWithOption) {
       commands.add(argument);
