@@ -12,6 +12,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.checkerframework.specimin.SpeciminRunner;
 
 /**
  * A utility class to manage and run Specimin - a specification minimizer tool.
@@ -53,8 +54,6 @@ public final class SpeciminTool {
    */
   public static String runSpeciminTool(String root, String targetFile, String targetMethod)
       throws IOException, InterruptedException {
-    LOGGER.info("Running SpeciminTool...");
-
     Configuration config = Configuration.getInstance();
     String speciminPath = config.getPropertyValue("specimin.tool.path");
 
@@ -73,11 +72,7 @@ public final class SpeciminTool {
     List<String> argsWithOption =
         formatSpeciminArgs(tempDir.toString(), root, targetFile, targetMethod);
 
-    List<String> commands = prepareCommands(speciminPath, argsWithOption);
-
-    logCommands(commands);
-
-    startSpeciminProcess(commands, speciminPath);
+    startSpeciminProcess(argsWithOption, speciminPath);
 
     return tempDir.toString();
   }
@@ -126,17 +121,6 @@ public final class SpeciminTool {
   }
 
   /**
-   * Logs the commands being executed.
-   *
-   * @param commands List of commands to be logged.
-   */
-  private static void logCommands(List<String> commands) {
-    LOGGER.info("Executing command:");
-    LOGGER.info(String.join(" ", commands));
-  }
-
-  /**
-   * // TODO: Specimin path should change to using a jar once we are ready Starts the Specimin
    * process with the given commands and path to the Specimin project.
    *
    * @param commands List of commands to be executed.
@@ -145,23 +129,25 @@ public final class SpeciminTool {
    * @throws IOException If there's an error executing the command or reading the output.
    * @throws InterruptedException If the process execution is interrupted.
    */
-  private static void startSpeciminProcess(List<String> commands, String speciminPath)
+  private static void startSpeciminProcess(List<String> arguments, String speciminPath)
       throws IOException, InterruptedException {
-    ProcessBuilder builder = new ProcessBuilder(commands);
-    builder.redirectErrorStream(true);
-    builder.directory(new File(speciminPath));
 
-    Process process;
+    SpeciminRunner runner = new SpeciminRunner();
+
+    LOGGER.info("Running specimin with arguments: " + String.join(" ", arguments));
+
+    // convert arg list into an array
+    String[] argArray = new String[arguments.size()];
+    for (int i = 0; i < arguments.size(); i++) argArray[i] = arguments.get(i);
+
     try {
-      process = builder.start();
-    } catch (IOException e) {
-      String errorMessage = "Failed to start the Specimin process";
-      LOGGER.error(errorMessage, e);
-      throw new IOException(errorMessage, e);
+      // start specimin
+      runner.main(argArray);
+      LOGGER.info("BUILD SUCCESSFUL");
+    } catch (Exception e) {
+      LOGGER.error("Specimin crashed. \nException in thread " + e);
+      LOGGER.error("BUILD FAILED");
     }
-
-    logProcessOutput(process);
-    finalizeProcess(process);
   }
 
   /**
