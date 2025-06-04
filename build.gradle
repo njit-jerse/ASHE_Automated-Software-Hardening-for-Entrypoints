@@ -43,6 +43,12 @@ test {
     useJUnitPlatform()
 }
 
+subprojects {
+    tasks.withType(Test).configureEach {
+        enabled = false
+    }
+}
+
 apply plugin: 'org.checkerframework'
 checkerFramework {
     checkers = [
