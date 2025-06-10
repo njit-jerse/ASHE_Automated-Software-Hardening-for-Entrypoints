@@ -1,0 +1,3 @@
+[submodule "specimin"]
+	path = specimin
+	url = https://github.com/njit-jerse/specimin
