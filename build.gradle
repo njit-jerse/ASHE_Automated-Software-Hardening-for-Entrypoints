@@ -102,8 +102,7 @@ assemble.dependsOn renameCheckerFrameworkJars
 /* Make Emacs TAGS table */
 task tags(type: Exec) {
     description "Run etags to create an Emacs TAGS table"
-    // TODO: buildDir is deprecated. Use layout.buildDirectory instead.
-    environment PATH: "$System.env.PATH:$buildDir/utils/plume-lib/bin"
+    environment PATH: "$System.env.PATH:${layout.buildDirectory.get()}/utils/plume-lib/bin"
     commandLine "bash", "-c", "find src/ -name '*.java' | sort-directory-order | xargs etags"
 }
 
