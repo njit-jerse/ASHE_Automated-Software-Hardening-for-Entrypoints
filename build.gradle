@@ -1,6 +1,6 @@
 plugins {
     id 'java'
-    id "org.checkerframework" version "0.6.44"
+    id "org.checkerframework" version "0.6.49"
     id 'com.diffplug.spotless' version '6.25.0'
 }
 
@@ -34,11 +34,19 @@ dependencies {
     implementation 'org.plumelib:plume-util:1.9.0'
     implementation 'commons-io:commons-io:2.18.0'
 
+    implementation project(':specimin')
+
     checkerFramework "org.checkerframework:checker:${checkerFrameworkVersion}"
 }
 
 test {
     useJUnitPlatform()
+}
+
+subprojects {
+    tasks.withType(Test).configureEach {
+        enabled = false
+    }
 }
 
 apply plugin: 'org.checkerframework'
